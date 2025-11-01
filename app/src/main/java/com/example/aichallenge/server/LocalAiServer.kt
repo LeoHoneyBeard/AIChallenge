@@ -1,24 +1,25 @@
 package com.example.aichallenge.server
 
 import android.util.Log
+import com.example.aichallenge.BuildConfig
+import fi.iki.elonen.NanoHTTPD
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import fi.iki.elonen.NanoHTTPD
 
 class LocalAiServer(
     port: Int,
-    private val apiKey: String,
-    private val folderId: String,
 ) : NanoHTTPD("127.0.0.1", port) {
 
     private val client = OkHttpClient()
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     private val TAG = "LocalAiServer"
+    private val apiKey = BuildConfig.YANDEX_API_KEY
+    private val folderId = BuildConfig.YC_FOLDER_ID
 
     override fun serve(session: IHTTPSession): Response {
         return try {
@@ -39,7 +40,7 @@ class LocalAiServer(
 
             val prompt = try {
                 JSONObject(raw).optString("prompt", "").trim()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 ""
             }
 
@@ -47,7 +48,7 @@ class LocalAiServer(
                 return jsonError(400, "Field 'prompt' is required")
             }
 
-            Log.i(TAG, "Incoming /chat request. prompt='${prompt}'")
+            Log.i(TAG, "Incoming /chat request. prompt='$prompt'")
             val answer = callYandex(prompt)
             val resp = JSONObject()
                 .put("prompt", prompt)
@@ -95,15 +96,14 @@ class LocalAiServer(
             .post(payloadJson.toRequestBody(jsonMedia))
             .build()
 
-        Log.d(TAG, "Yandex LLM request -> url=${endpoint}, payload=${payloadJson}")
+        Log.d(TAG, "Yandex LLM request -> url=$endpoint, payload=$payloadJson")
         client.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                Log.e(TAG, "Yandex LLM error code=${resp.code} body=${body}")
+                Log.e(TAG, "Yandex LLM error code=${resp.code} body=$body")
                 throw IllegalStateException("Yandex LLM error ${resp.code}: $body")
             }
             val json = JSONObject(body)
-            // Expected: result.alternatives[0].message.text
             val text = json
                 .optJSONObject("result")
                 ?.optJSONArray("alternatives")
@@ -112,7 +112,7 @@ class LocalAiServer(
                 ?.optString("text")
                 ?.trim()
             val answer = text?.takeIf { it.isNotEmpty() } ?: ""
-            Log.d(TAG, "Yandex LLM response <- text='${answer}'")
+            Log.d(TAG, "Yandex LLM response <- text='$answer'")
             return answer
         }
     }
@@ -129,3 +129,4 @@ class LocalAiServer(
         }
     }
 }
+

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.aichallenge.ui.theme.AIChallengeTheme
-import com.example.aichallenge.BuildConfig
 import com.example.aichallenge.server.LocalAiServer
 import fi.iki.elonen.NanoHTTPD
 import com.example.aichallenge.chat.ChatScreen
@@ -22,11 +21,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Prepare local AI server on 127.0.0.1:8080 (Yandex Cloud)
-        server = LocalAiServer(
-            port = 8080,
-            apiKey = BuildConfig.YANDEX_API_KEY,
-            folderId = BuildConfig.YC_FOLDER_ID,
-        )
+        server = LocalAiServer(port = 8080)
         server?.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false)
 
         setContent {
