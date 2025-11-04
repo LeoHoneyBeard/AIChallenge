@@ -13,6 +13,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import org.json.JSONArray
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -50,8 +51,10 @@ class ChatViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Local server request -> prompt='${prompt}'")
-                val resultText = callLocalServer(prompt)
+                // Build history excluding the just-added user message
+                val historyForServer = messages.filter { it.id != userMsg.id }
+                Log.d(TAG, "Local server request -> prompt='${prompt}', history=${historyForServer.size}")
+                val resultText = callLocalServer(prompt, historyForServer)
                 withContext(Dispatchers.Main) {
                     val botMsg = ChatMessage(System.nanoTime(), ChatMessage.Role.BOT, resultText)
                     messages = messages + botMsg
@@ -68,8 +71,25 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-    private fun callLocalServer(prompt: String): String {
-        val payload = JSONObject().put("prompt", prompt).toString()
+    private fun callLocalServer(prompt: String, history: List<ChatMessage>): String {
+        val historyJson = JSONArray()
+        history.forEach { msg ->
+            val role = when (msg.role) {
+                ChatMessage.Role.USER -> "user"
+                ChatMessage.Role.BOT -> "assistant"
+            }
+            val text = msg.text.trim()
+            if (text.isEmpty()) return@forEach
+            historyJson.put(
+                JSONObject()
+                    .put("role", role)
+                    .put("text", text)
+            )
+        }
+        val payload = JSONObject()
+            .put("prompt", prompt)
+            .put("messages", historyJson)
+            .toString()
 
         val request = Request.Builder()
             .url(baseUrl)
@@ -91,4 +111,3 @@ class ChatViewModel : ViewModel() {
         }
     }
 }
-
