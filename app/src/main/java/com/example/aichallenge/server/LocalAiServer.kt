@@ -70,12 +70,26 @@ class LocalAiServer(
                     .put("text", resp)
             )
 
+            Log.d(TAG, "/chat response =\n${prettyJson(resp)}")
             return newFixedLengthResponse(Response.Status.OK, "application/json", resp.toString()).apply {
                 addHeader("Access-Control-Allow-Origin", "*")
                 addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
             }
         } catch (e: Exception) {
             jsonError(500, e.message ?: "Internal error")
+        }
+    }
+
+    private fun prettyJson(raw: String): String = try {
+        // Try object first
+        JSONObject(raw).toString(2)
+    } catch (_: Exception) {
+        try {
+            // Then array
+            JSONArray(raw).toString(2)
+        } catch (_: Exception) {
+            // Fallback: return as-is
+            raw
         }
     }
 

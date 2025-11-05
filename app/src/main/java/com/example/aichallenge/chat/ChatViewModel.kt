@@ -66,7 +66,6 @@ class ChatViewModel : ViewModel() {
 
     private suspend fun callLocalServer(prompt: String): String {
         val payload = ChatPayload(prompt = prompt)
-        Log.d(TAG, "HTTP POST /chat (retrofit)")
         val ans = api.chat(payload)
         return ans.toDisplayString()
     }
