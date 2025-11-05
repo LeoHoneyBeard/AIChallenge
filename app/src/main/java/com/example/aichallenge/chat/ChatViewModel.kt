@@ -8,20 +8,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import org.json.JSONArray
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+import com.example.aichallenge.api.ApiModule
+import com.example.aichallenge.api.ChatPayload
+
 class ChatViewModel : ViewModel() {
-    private val client = OkHttpClient()
-    private val jsonMedia = "application/json; charset=utf-8".toMediaType()
-    private val baseUrl = "http://127.0.0.1:8080/chat"
+    private val api = ApiModule.localApi
     private val TAG = "ChatViewModel"
 
     var messages by mutableStateOf(listOf<ChatMessage>())
@@ -51,10 +46,8 @@ class ChatViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Build history excluding the just-added user message
-                val historyForServer = messages.filter { it.id != userMsg.id }
-                Log.d(TAG, "Local server request -> prompt='${prompt}', history=${historyForServer.size}")
-                val resultText = callLocalServer(prompt, historyForServer)
+                Log.d(TAG, "Local server request -> prompt='${'$'}prompt'")
+                val resultText = callLocalServer(prompt)
                 withContext(Dispatchers.Main) {
                     val botMsg = ChatMessage(System.nanoTime(), ChatMessage.Role.BOT, resultText)
                     messages = messages + botMsg
@@ -71,43 +64,10 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-    private fun callLocalServer(prompt: String, history: List<ChatMessage>): String {
-        val historyJson = JSONArray()
-        history.forEach { msg ->
-            val role = when (msg.role) {
-                ChatMessage.Role.USER -> "user"
-                ChatMessage.Role.BOT -> "assistant"
-            }
-            val text = msg.text.trim()
-            if (text.isEmpty()) return@forEach
-            historyJson.put(
-                JSONObject()
-                    .put("role", role)
-                    .put("text", text)
-            )
-        }
-        val payload = JSONObject()
-            .put("prompt", prompt)
-            .put("messages", historyJson)
-            .toString()
-
-        val request = Request.Builder()
-            .url(baseUrl)
-            .addHeader("Content-Type", "application/json")
-            .post(payload.toRequestBody(jsonMedia))
-            .build()
-
-        Log.d(TAG, "HTTP POST $baseUrl payload=${payload}")
-        client.newCall(request).execute().use { resp ->
-            val body = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) {
-                Log.e(TAG, "HTTP error code=${resp.code} body=${body}")
-                throw IllegalStateException("HTTP ${resp.code} body=${body}")
-            }
-            val json = JSONObject(body)
-            val answer = json.optString("answer", "")
-            Log.d(TAG, "HTTP response <- answer='${answer}'")
-            return answer
-        }
+    private suspend fun callLocalServer(prompt: String): String {
+        val payload = ChatPayload(prompt = prompt)
+        Log.d(TAG, "HTTP POST /chat (retrofit)")
+        val ans = api.chat(payload)
+        return ans.toDisplayString()
     }
 }
