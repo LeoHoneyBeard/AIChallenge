@@ -69,6 +69,11 @@ dependencies {
     // HTTP client to call cloud LLM
     implementation(libs.okhttp)
 
+    // Retrofit + Gson for typed HTTP and adapters
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.gson)
+
     // ViewModel + Compose integration and coroutines
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

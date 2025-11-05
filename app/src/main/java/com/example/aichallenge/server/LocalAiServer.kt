@@ -20,6 +20,7 @@ class LocalAiServer(
     private val TAG = "LocalAiServer"
     private val apiKey = BuildConfig.YANDEX_API_KEY
     private val folderId = BuildConfig.YC_FOLDER_ID
+    private val history = mutableListOf<JSONObject>()
 
     override fun serve(session: IHTTPSession): Response {
         return try {
@@ -40,60 +41,34 @@ class LocalAiServer(
 
             val bodyJson = try { JSONObject(raw) } catch (_: Exception) { JSONObject() }
             val prompt = bodyJson.optString("prompt", "").trim()
-            val incomingMessages = bodyJson.optJSONArray("messages")
 
             if (prompt.isEmpty()) {
                 return jsonError(400, "Field 'prompt' is required")
             }
 
-            val (_, resp) = if (incomingMessages != null && incomingMessages.length() > 0) {
-                // Build full conversation: system + normalized history + new user message
-                val normalized = JSONArray()
-                for (i in 0 until incomingMessages.length()) {
-                    val obj = incomingMessages.optJSONObject(i) ?: continue
-                    val roleRaw = obj.optString("role", "").lowercase()
-                    val text = obj.optString("text", "").trim()
-                    if (text.isEmpty()) continue
-                    val mappedRole = when (roleRaw) {
-                        "user" -> "user"
-                        "assistant" -> "assistant"
-                        "bot" -> "assistant"
-                        "system" -> "system"
-                        else -> "user"
-                    }
-                    // Skip external system messages; we'll add our own system prompt at start
-                    if (mappedRole == "system") continue
+            // Build full conversation: system + stored history + new user message
+            val finalMessages = JSONArray().put(buildSystemMessage())
+            history.forEach { finalMessages.put(it) }
+            finalMessages.put(
+                JSONObject()
+                    .put("role", "user")
+                    .put("text", prompt)
+            )
 
-                    normalized.put(
-                        JSONObject()
-                            .put("role", mappedRole)
-                            .put("text", text)
-                    )
-                }
+            Log.i(TAG, "Incoming /chat request. prompt='${'$'}prompt', history=${'$'}{history.size}")
+            val resp = callYandex(finalMessages)
 
-                val finalMessages = JSONArray().put(buildSystemMessage())
-                for (i in 0 until normalized.length()) {
-                    finalMessages.put(normalized.getJSONObject(i))
-                }
-                // Append the newly entered prompt as last user message
-                finalMessages.put(
-                    JSONObject()
-                        .put("role", "user")
-                        .put("text", prompt)
-                )
-
-                Log.i(TAG, "Incoming /chat with history=${incomingMessages.length()} + prompt")
-                val ans = callYandex(finalMessages)
-                val respObj = JSONObject().put("answer", ans)
-                ans to respObj
-            } else {
-                Log.i(TAG, "Incoming /chat request. prompt='$prompt'")
-                val ans = callYandex(prompt)
-                val respObj = JSONObject()
-                    .put("prompt", prompt)
-                    .put("answer", ans)
-                ans to respObj
-            }
+            // Persist new exchange to server-side history
+            history.add(
+                JSONObject()
+                    .put("role", "user")
+                    .put("text", prompt)
+            )
+            history.add(
+                JSONObject()
+                    .put("role", "assistant")
+                    .put("text", resp)
+            )
 
             return newFixedLengthResponse(Response.Status.OK, "application/json", resp.toString()).apply {
                 addHeader("Access-Control-Allow-Origin", "*")
@@ -104,7 +79,7 @@ class LocalAiServer(
         }
     }
 
-        private fun callYandex(userPrompt: String): String {
+    private fun callYandex(userPrompt: String): String {
         val messages = JSONArray()
             .put(buildSystemMessage())
             .put(
@@ -125,6 +100,7 @@ class LocalAiServer(
                     .put("temperature", 0.8)
                     .put("maxTokens", "1000")
             )
+            .put("json_schema", buildJsonSchema())
             .put("messages", messages)
             .toString()
 
@@ -156,10 +132,48 @@ class LocalAiServer(
         }
     }
 
+    private fun buildJsonSchema(): JSONObject =
+        JSONObject().put(
+            "schema",
+            JSONObject()
+                .put("type", "object")
+                .put(
+                    "properties",
+                    JSONObject()
+                        .put(
+                            "title",
+                            JSONObject()
+                                .put("title", "Title")
+                                .put("description", "Название фильма или сериала")
+                                .put("type", "string")
+                        )
+                        .put(
+                            "rating",
+                            JSONObject()
+                                .put("title", "Rating")
+                                .put("description", "Рейтинг на imdb")
+                                .put("type", "number")
+                        )
+                        .put(
+                            "description",
+                            JSONObject()
+                                .put("title", "Description")
+                                .put("description", "Содержание фильма или сериала")
+                                .put("type", "string")
+                        )
+                )
+                .put(
+                    "required",
+                    JSONArray().put("title").put("rating").put("description")
+                )
+        )
+
     private fun buildSystemMessage(): JSONObject =
         JSONObject()
             .put("role", "system")
-            .put("text", "Ты тибетский монах, который отвечает мудростями или загадками")
+            .put("text", "Ты ИИ-агент, который даёт информацию о фильмах и сериалах с imdb. Если вопрос не про конкретный фильм, в поля title и rating нужно ставить прочерки")
+
+
 
     private fun jsonError(code: Int, message: String): Response {
         val obj = JSONObject().put("error", message)
