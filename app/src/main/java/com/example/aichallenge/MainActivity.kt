@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.aichallenge.ui.theme.AIChallengeTheme
-import com.example.aichallenge.server.LocalAiServer
-import fi.iki.elonen.NanoHTTPD
 import com.example.aichallenge.chat.ChatScreen
+import com.example.aichallenge.server.LocalAiServer
+import com.example.aichallenge.ui.theme.AIChallengeTheme
+import fi.iki.elonen.NanoHTTPD
 
 class MainActivity : ComponentActivity() {
     private var server: LocalAiServer? = null
