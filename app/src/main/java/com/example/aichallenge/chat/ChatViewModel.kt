@@ -46,7 +46,6 @@ class ChatViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Local server request -> prompt='${'$'}prompt'")
                 val resultText = callLocalServer(prompt)
                 withContext(Dispatchers.Main) {
                     val botMsg = ChatMessage(System.nanoTime(), ChatMessage.Role.BOT, resultText)
@@ -66,7 +65,7 @@ class ChatViewModel : ViewModel() {
 
     private suspend fun callLocalServer(prompt: String): String {
         val payload = ChatPayload(prompt = prompt)
-        val ans = api.chat(payload)
-        return ans.toDisplayString()
+        val ans = api.chatWithRestrictions(payload)
+        return ans
     }
 }
