@@ -18,9 +18,28 @@ class LocalAiServer(
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     private val TAG = "LocalAiServer"
-    private val apiKey = BuildConfig.YANDEX_API_KEY
-    private val folderId = BuildConfig.YC_FOLDER_ID
+    private var apiKey = BuildConfig.YANDEX_API_KEY
+    private var folderId = BuildConfig.YC_FOLDER_ID
     private val history = mutableListOf<JSONObject>()
+    private var role: Role = Role.DEFAULT
+
+    init {
+        LocalServerRegistry.instance = this
+    }
+
+    constructor(port: Int, apiKey: String, folderId: String) : this(port) {
+        this.apiKey = apiKey
+        this.folderId = folderId
+    }
+
+    fun setRole(newRole: Role) {
+        if (role != newRole) {
+            role = newRole
+            history.clear()
+        }
+    }
+
+    fun getRole(): Role = role
 
     override fun serve(session: IHTTPSession): Response {
         return try {
@@ -50,7 +69,7 @@ class LocalAiServer(
 
             // Build full conversation: system + stored history + new user message
             val finalMessages = JSONArray().put(
-                if (isRestricted) buildRestrictedSystemMessage() else buildSystemMessage()
+                if (isRestricted) buildRestrictedSystemMessageFromRole() else buildSystemMessage()
             )
             history.forEach { finalMessages.put(it) }
             finalMessages.put(
@@ -104,7 +123,7 @@ class LocalAiServer(
                 "completionOptions",
                 JSONObject()
                     .put("stream", false)
-                    .put("temperature", 0.3)
+                    .put("temperature", role.temperature)
                     .put("maxTokens", "1000")
             )
             .put("messages", messages)
@@ -192,6 +211,14 @@ class LocalAiServer(
             .put(
                 "text",
                 "Ты ИИ-ассистент"
+            )
+
+    private fun buildRestrictedSystemMessageFromRole(): JSONObject =
+        JSONObject()
+            .put("role", "system")
+            .put(
+                "text",
+                role.roleDescription
             )
 
     private fun jsonError(code: Int, message: String): Response {
