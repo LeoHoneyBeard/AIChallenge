@@ -69,9 +69,10 @@ dependencies {
     // HTTP client to call cloud LLM
     implementation(libs.okhttp)
 
-    // Retrofit + Gson for typed HTTP and adapters
+    // Retrofit + converters (Gson + Scalars)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.retrofit.converter.scalars)
     implementation(libs.gson)
 
     // ViewModel + Compose integration and coroutines

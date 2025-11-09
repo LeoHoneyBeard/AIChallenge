@@ -24,7 +24,9 @@ class LocalAiServer(
 
     override fun serve(session: IHTTPSession): Response {
         return try {
-            if (session.method != Method.POST || session.uri != "/chat") {
+            val isChat = session.uri == "/chat"
+            val isRestricted = session.uri == "/chat_with_restrictions"
+            if (session.method != Method.POST || (!isChat && !isRestricted)) {
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
             }
 
@@ -47,7 +49,9 @@ class LocalAiServer(
             }
 
             // Build full conversation: system + stored history + new user message
-            val finalMessages = JSONArray().put(buildSystemMessage())
+            val finalMessages = JSONArray().put(
+                if (isRestricted) buildRestrictedSystemMessage() else buildSystemMessage()
+            )
             history.forEach { finalMessages.put(it) }
             finalMessages.put(
                 JSONObject()
@@ -55,8 +59,7 @@ class LocalAiServer(
                     .put("text", prompt)
             )
 
-            Log.i(TAG, "Incoming /chat request. prompt='${'$'}prompt', history=${'$'}{history.size}")
-            val resp = callYandex(finalMessages)
+            val resp = callYandex(finalMessages, !isRestricted)
 
             // Persist new exchange to server-side history
             history.add(
@@ -70,8 +73,9 @@ class LocalAiServer(
                     .put("text", resp)
             )
 
-            Log.d(TAG, "/chat response =\n${prettyJson(resp)}")
-            return newFixedLengthResponse(Response.Status.OK, "application/json", resp.toString()).apply {
+//            Log.d(TAG, "${session.uri} response =\n${prettyJson(resp)}")
+            val contentType = if (isRestricted) "text/plain" else "application/json"
+            return newFixedLengthResponse(Response.Status.OK, contentType, resp.toString()).apply {
                 addHeader("Access-Control-Allow-Origin", "*")
                 addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
             }
@@ -93,30 +97,23 @@ class LocalAiServer(
         }
     }
 
-    private fun callYandex(userPrompt: String): String {
-        val messages = JSONArray()
-            .put(buildSystemMessage())
-            .put(
-                JSONObject()
-                    .put("role", "user")
-                    .put("text", userPrompt)
-            )
-        return callYandex(messages)
-    }
-
-    private fun callYandex(messages: JSONArray): String {
-        val payloadJson = JSONObject()
-            .put("modelUri", "gpt://$folderId/yandexgpt-lite")
+    private fun callYandex(messages: JSONArray, withSchema: Boolean): String {
+        val payloadJsonObject = JSONObject()
+            .put("modelUri", "gpt://$folderId/yandexgpt-5.1")
             .put(
                 "completionOptions",
                 JSONObject()
                     .put("stream", false)
-                    .put("temperature", 0.8)
+                    .put("temperature", 0.3)
                     .put("maxTokens", "1000")
             )
-            .put("json_schema", buildJsonSchema())
             .put("messages", messages)
-            .toString()
+
+        if (withSchema) {
+            payloadJsonObject.put("json_schema", buildJsonSchema())
+        }
+
+        val payloadJson = payloadJsonObject.toString()
 
         val req = Request.Builder()
             .url(endpoint)
@@ -188,6 +185,14 @@ class LocalAiServer(
             .put("text", "Ты ИИ-агент, который даёт информацию о фильмах и сериалах с imdb. Если вопрос не про конкретный фильм, в поля title и rating нужно ставить прочерки")
 
 
+
+    private fun buildRestrictedSystemMessage(): JSONObject =
+        JSONObject()
+            .put("role", "system")
+            .put(
+                "text",
+                "Ты ИИ-ассистент"
+            )
 
     private fun jsonError(code: Int, message: String): Response {
         val obj = JSONObject().put("error", message)

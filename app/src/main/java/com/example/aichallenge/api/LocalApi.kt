@@ -12,4 +12,7 @@ data class ChatPayload(
 interface LocalApi {
     @POST("chat")
     suspend fun chat(@Body payload: ChatPayload): BotAnswer
+
+    @POST("chat_with_restrictions")
+    suspend fun chatWithRestrictions(@Body payload: ChatPayload): String
 }
