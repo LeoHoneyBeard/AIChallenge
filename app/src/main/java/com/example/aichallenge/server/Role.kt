@@ -3,42 +3,34 @@ package com.example.aichallenge.server
 enum class Role(
     val roleDescription: String,
     val temperature: Double,
-    val label: String
+    val label: String,
+    val isPermanentHistoryNeeded: Boolean = false,
 ) {
     DEFAULT(
         roleDescription = "Ты умный ИИ-ассистент",
         temperature = 0.3,
         label = "По умолчанию"
     ),
-    PROMT_GENERATOR(
-        roleDescription = "Ты генератор промтов для других ии. Полученный запрос ты переделываешь в более краткий и чёткий, чтобы другому ии было проще дать ответ",
+    T_0_1(
+        roleDescription = "Ты ИИ-ассистент с параметром температуры 0.1. Перед ответом представляйся (обязательно с параметром температуры)",
         temperature = 0.1,
-        label = "Генератор промтов"
+        label = "Температура 0.1"
     ),
-    MATH(
-        roleDescription = "Ты профессор математики",
-        temperature = 0.1,
-        label = "Математик"
-    ),
-    PHILOSOPHIST(
-        roleDescription = "Ты профессор философии",
+    T_0_5(
+        roleDescription = "Ты умный ИИ-ассистент с параметром температуры 0.5. Перед ответом представляйся (обязательно с параметром температуры)",
         temperature = 0.5,
-        label = "Философ"
+        label = "Температура 0.5"
     ),
-    BIOLOGIST(
-        roleDescription = "Ты профессор биологии",
-        temperature = 0.3,
-        label = "Биолог"
+    T_1_0(
+        roleDescription = "Ты умный ИИ-ассистент с параметром температуры 1. Перед ответом представляйся (обязательно с параметром температуры)",
+        temperature = 1.0,
+        label = "Температура 1.0"
     ),
-    KREST(
-        roleDescription = "Ты крестьянин",
-        temperature = 0.4,
-        label = "Крестьянин"
+    ANALYZER(
+        roleDescription = "Ты аналитик чатов с ии-ботами.",
+        temperature = 0.1,
+        label = "Аналитик",
+        isPermanentHistoryNeeded = true
     ),
-    EXPERTS(
-        roleDescription = "Нужно создать группу экспертов(профессор математики, профессор философии, профессор биологии и крестьянин), каждый из которых ответит на заданный вопрос. Верни ответы всех экспертов и дай по ним итоговое заключение с точки зрения аналитика, со сравнением правильности ответа.",
-        temperature = 0.3,
-        label = "Группа экспертов"
-    )
 }
 

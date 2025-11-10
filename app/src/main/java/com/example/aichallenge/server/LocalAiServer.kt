@@ -21,15 +21,11 @@ class LocalAiServer(
     private var apiKey = BuildConfig.YANDEX_API_KEY
     private var folderId = BuildConfig.YC_FOLDER_ID
     private val history = mutableListOf<JSONObject>()
+    private val permanentHistory = mutableListOf<JSONObject>()
     private var role: Role = Role.DEFAULT
 
     init {
         LocalServerRegistry.instance = this
-    }
-
-    constructor(port: Int, apiKey: String, folderId: String) : this(port) {
-        this.apiKey = apiKey
-        this.folderId = folderId
     }
 
     fun setRole(newRole: Role) {
@@ -43,9 +39,7 @@ class LocalAiServer(
 
     override fun serve(session: IHTTPSession): Response {
         return try {
-            val isChat = session.uri == "/chat"
-            val isRestricted = session.uri == "/chat_with_restrictions"
-            if (session.method != Method.POST || (!isChat && !isRestricted)) {
+            if (session.method != Method.POST || session.uri != "/chat") {
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
             }
 
@@ -69,32 +63,33 @@ class LocalAiServer(
 
             // Build full conversation: system + stored history + new user message
             val finalMessages = JSONArray().put(
-                if (isRestricted) buildRestrictedSystemMessageFromRole() else buildSystemMessage()
+                buildSystemMessageFromRole()
             )
-            history.forEach { finalMessages.put(it) }
+            val chosenHistory = if (role.isPermanentHistoryNeeded) permanentHistory else history
+            chosenHistory.forEach { finalMessages.put(it) }
             finalMessages.put(
                 JSONObject()
                     .put("role", "user")
                     .put("text", prompt)
             )
 
-            val resp = callYandex(finalMessages, !isRestricted)
+            val resp = callYandex(finalMessages)
 
-            // Persist new exchange to server-side history
-            history.add(
-                JSONObject()
-                    .put("role", "user")
-                    .put("text", prompt)
-            )
-            history.add(
-                JSONObject()
-                    .put("role", "assistant")
-                    .put("text", resp)
-            )
+            // Persist new exchange to both histories
+            val userObj = JSONObject()
+                .put("role", "user")
+                .put("text", prompt)
+            val assistantObj = JSONObject()
+                .put("role", "assistant")
+                .put("text", resp)
+
+            history.add(userObj)
+            history.add(assistantObj)
+            permanentHistory.add(JSONObject(userObj.toString()))
+            permanentHistory.add(JSONObject(assistantObj.toString()))
 
 //            Log.d(TAG, "${session.uri} response =\n${prettyJson(resp)}")
-            val contentType = if (isRestricted) "text/plain" else "application/json"
-            return newFixedLengthResponse(Response.Status.OK, contentType, resp.toString()).apply {
+            return newFixedLengthResponse(Response.Status.OK, "text/plain", resp.toString()).apply {
                 addHeader("Access-Control-Allow-Origin", "*")
                 addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
             }
@@ -116,7 +111,7 @@ class LocalAiServer(
         }
     }
 
-    private fun callYandex(messages: JSONArray, withSchema: Boolean): String {
+    private fun callYandex(messages: JSONArray): String {
         val payloadJsonObject = JSONObject()
             .put("modelUri", "gpt://$folderId/yandexgpt-5.1")
             .put(
@@ -127,10 +122,6 @@ class LocalAiServer(
                     .put("maxTokens", "1000")
             )
             .put("messages", messages)
-
-        if (withSchema) {
-            payloadJsonObject.put("json_schema", buildJsonSchema())
-        }
 
         val payloadJson = payloadJsonObject.toString()
 
@@ -198,22 +189,8 @@ class LocalAiServer(
                 )
         )
 
-    private fun buildSystemMessage(): JSONObject =
-        JSONObject()
-            .put("role", "system")
-            .put("text", "Ты ИИ-агент, который даёт информацию о фильмах и сериалах с imdb. Если вопрос не про конкретный фильм, в поля title и rating нужно ставить прочерки")
 
-
-
-    private fun buildRestrictedSystemMessage(): JSONObject =
-        JSONObject()
-            .put("role", "system")
-            .put(
-                "text",
-                "Ты ИИ-ассистент"
-            )
-
-    private fun buildRestrictedSystemMessageFromRole(): JSONObject =
+    private fun buildSystemMessageFromRole(): JSONObject =
         JSONObject()
             .put("role", "system")
             .put(
