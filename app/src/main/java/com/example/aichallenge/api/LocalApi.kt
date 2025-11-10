@@ -1,6 +1,5 @@
 package com.example.aichallenge.api
 
-import com.example.aichallenge.chat.BotAnswer
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -11,8 +10,5 @@ data class ChatPayload(
 
 interface LocalApi {
     @POST("chat")
-    suspend fun chat(@Body payload: ChatPayload): BotAnswer
-
-    @POST("chat_with_restrictions")
     suspend fun chatWithRestrictions(@Body payload: ChatPayload): String
 }
