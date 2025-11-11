@@ -27,8 +27,10 @@ android {
 
         val yandexKey = localProps.getProperty("YANDEX_API_KEY", "")
         val folderId = localProps.getProperty("YC_FOLDER_ID", "")
+        val hfToken = localProps.getProperty("HF_TOKEN", "")
         buildConfigField("String", "YANDEX_API_KEY", "\"$yandexKey\"")
         buildConfigField("String", "YC_FOLDER_ID", "\"$folderId\"")
+        buildConfigField("String", "HF_TOKEN", "\"$hfToken\"")
     }
 
     buildTypes {

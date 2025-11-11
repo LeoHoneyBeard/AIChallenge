@@ -2,38 +2,38 @@ package com.example.aichallenge.chat
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aichallenge.server.LocalServerRegistry
-import com.example.aichallenge.server.Role
+import com.example.aichallenge.server.HuggingServerRegistry
+import com.example.aichallenge.server.Model
 
 @Composable
-fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), onBack: () -> Unit = {}) {
+fun HuggingChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel()) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -45,7 +45,6 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
         }
     }
 
-    // Show errors as toasts
     LaunchedEffect(Unit) {
         vm.errors.collect { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
@@ -62,20 +61,20 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box {
-                val current = LocalServerRegistry.instance?.getRole() ?: Role.DEFAULT
-                TextButton(onClick = { showMenu.value = true }) { Text("Роль: ${current.label}") }
+                val current = HuggingServerRegistry.instance?.getModel() ?: Model.LLAMA_3_1_8B
+                TextButton(onClick = { showMenu.value = true }) { Text("Модель: ${current.label}") }
                 DropdownMenu(
                     expanded = showMenu.value,
                     onDismissRequest = { showMenu.value = false }
                 ) {
-                    Role.entries.forEach { r ->
+                    Model.values().forEach { m ->
                         DropdownMenuItem(
-                            text = { Text(r.label) },
+                            text = { Text(m.label) },
                             leadingIcon = {
-                                if (r == current) Text("✓")
+                                if (m == current) Text("✓")
                             },
                             onClick = {
-                                LocalServerRegistry.instance?.setRole(r)
+                                HuggingServerRegistry.instance?.setModel(m)
                                 showMenu.value = false
                             }
                         )
@@ -83,7 +82,7 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
                 }
             }
         }
-        // Messages list pinned to bottom when few
+
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -128,7 +127,6 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
             }
         }
 
-        // Input row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -155,4 +153,3 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
         }
     }
 }
-
