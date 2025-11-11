@@ -12,7 +12,7 @@ import org.json.JSONObject
 
 class LocalAiServer(
     port: Int,
-) : NanoHTTPD("127.0.0.1", port) {
+) : NanoHTTPD("127.0.0.1", port), ChatLocalServer {
 
     private val client = OkHttpClient()
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
@@ -28,14 +28,14 @@ class LocalAiServer(
         LocalServerRegistry.instance = this
     }
 
-    fun setRole(newRole: Role) {
+    override fun setRole(newRole: Role) {
         if (role != newRole) {
             role = newRole
             history.clear()
         }
     }
 
-    fun getRole(): Role = role
+    override fun getRole(): Role = role
 
     override fun serve(session: IHTTPSession): Response {
         return try {
