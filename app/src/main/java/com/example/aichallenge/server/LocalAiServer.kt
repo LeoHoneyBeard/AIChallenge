@@ -14,7 +14,11 @@ class LocalAiServer(
     port: Int,
 ) : NanoHTTPD("127.0.0.1", port), ChatLocalServer {
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(180, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(180, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     private val TAG = "LocalAiServer"
@@ -113,7 +117,7 @@ class LocalAiServer(
 
     private fun callYandex(messages: JSONArray): String {
         val payloadJsonObject = JSONObject()
-            .put("modelUri", "gpt://$folderId/yandexgpt-5.1")
+            .put("modelUri", "gpt://$folderId/yandexgpt-4-lite/latest")
             .put(
                 "completionOptions",
                 JSONObject()
@@ -133,23 +137,46 @@ class LocalAiServer(
             .build()
 
         Log.d(TAG, "Yandex LLM request -> url=$endpoint, payload=$payloadJson")
+        val startMs = System.currentTimeMillis()
         client.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
+            val json = JSONObject(body)
+            Log.d(TAG, "Yandex LLM <- response'=${prettyJson(json.toString())}")
             if (!resp.isSuccessful) {
                 Log.e(TAG, "Yandex LLM error code=${resp.code} body=$body")
                 throw IllegalStateException("Yandex LLM error ${resp.code}: $body")
             }
-            val json = JSONObject(body)
-            val text = json
+            val elapsedMs = System.currentTimeMillis() - startMs
+
+            val result = json
                 .optJSONObject("result")
+            val answer = result
                 ?.optJSONArray("alternatives")
                 ?.optJSONObject(0)
                 ?.optJSONObject("message")
                 ?.optString("text")
                 ?.trim()
-            val answer = text?.takeIf { it.isNotEmpty() } ?: ""
-            Log.d(TAG, "Yandex LLM response <- text='$answer'")
-            return answer
+                .orEmpty()
+
+            // Extract usage fields if present
+            val usage = result?.optJSONObject("usage")
+            val totalTokens = usage?.optInt("totalTokens")
+            val completionTokens = usage?.optInt("completionTokens")
+            val promptTokens = usage?.optInt("inputTextTokens")
+
+            val sb = StringBuilder()
+                .append(answer)
+
+            sb.append("\n\nИтоги запроса :\n")
+
+            if (totalTokens != null) sb.append("\n").append("totalTokens : ").append(totalTokens)
+            if (completionTokens != null) sb.append("\n").append("completionTokens : ").append(completionTokens)
+            if (promptTokens != null) sb.append("\n").append("inputTextTokens : ").append(promptTokens)
+            sb.append("\n").append("request_time_ms : ").append(elapsedMs)
+
+            val finalText = sb.toString()
+            Log.d(TAG, "HF response <- text='${finalText}'")
+            return finalText
         }
     }
 

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aichallenge.R
 import com.example.aichallenge.server.LocalServerRegistry
 import com.example.aichallenge.server.Role
 
@@ -57,10 +58,46 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.End,
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .height(0.dp),
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Button(onClick = {
+                try {
+                    val text = context.resources
+                        .openRawResource(R.raw.long_text)
+                        .bufferedReader()
+                        .use { it.readText() }
+                    vm.sendLongText(text)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Не удалось прочитать файл", Toast.LENGTH_SHORT).show()
+                }
+            }) {
+                Text("Отправить длинный текст")
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(onClick = {
+                try {
+                    val text = context.resources
+                        .openRawResource(R.raw.long_text)
+                        .bufferedReader()
+                        .use { it.readText() }
+                    vm.sendLongText(text)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Не удалось прочитать файл", Toast.LENGTH_SHORT).show()
+                }
+            }) {
+                Text("Отправить длинный текст")
+            }
             Box {
                 val current = LocalServerRegistry.instance?.getRole() ?: Role.DEFAULT
                 TextButton(onClick = { showMenu.value = true }) { Text("Роль: ${current.label}") }

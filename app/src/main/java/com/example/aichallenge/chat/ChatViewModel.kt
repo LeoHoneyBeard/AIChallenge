@@ -63,6 +63,33 @@ class ChatViewModel : ViewModel() {
         }
     }
 
+    fun sendLongText(text: String) {
+        val prompt = text.trim()
+        if (prompt.isEmpty() || isSending) return
+
+        val userMsg = ChatMessage(System.nanoTime(), ChatMessage.Role.USER, prompt)
+        messages = messages + userMsg
+        isSending = true
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val resultText = callLocalServer(prompt)
+                withContext(Dispatchers.Main) {
+                    val botMsg = ChatMessage(System.nanoTime(), ChatMessage.Role.BOT, resultText)
+                    messages = messages + botMsg
+                    isSending = false
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    val msg = "Local server error: ${e.message}"
+                    Log.e(TAG, "Local server error: $msg", e)
+                    _errors.tryEmit(msg)
+                    isSending = false
+                }
+            }
+        }
+    }
+
     private suspend fun callLocalServer(prompt: String): String {
         val payload = ChatPayload(prompt = prompt)
         val ans = api.chatWithRestrictions(payload)

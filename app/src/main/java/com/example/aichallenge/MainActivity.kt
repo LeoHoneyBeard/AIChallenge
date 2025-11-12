@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
     private fun switchServer(newServer: NanoHTTPD) {
         server?.stop()
         server = newServer
-        server?.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false)
+        server?.start(30000, false)
     }
 
     private fun stopServer() {
