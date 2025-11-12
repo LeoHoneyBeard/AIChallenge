@@ -32,5 +32,10 @@ enum class Role(
         label = "Аналитик",
         isPermanentHistoryNeeded = true
     ),
+    CRITIC(
+        roleDescription = "Ты литературный критик. Ты пишешь очень развернутые рецензии, минимум на 3000 слов.",
+        temperature = 0.8,
+        label = "Критик"
+    ),
 }
 

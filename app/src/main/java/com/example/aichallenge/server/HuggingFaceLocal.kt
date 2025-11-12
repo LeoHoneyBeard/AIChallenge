@@ -14,7 +14,11 @@ class HuggingFaceLocal(
     port: Int,
 ) : NanoHTTPD("127.0.0.1", port), HuggingLocalServer {
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = "https://router.huggingface.co/v1/chat/completions"
     private val TAG = "HuggingFaceLocal"
