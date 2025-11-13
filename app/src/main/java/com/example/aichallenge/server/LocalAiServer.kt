@@ -5,10 +5,29 @@ import com.example.aichallenge.BuildConfig
 import fi.iki.elonen.NanoHTTPD
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+
+private data class CompletionResult(
+    val answer: String,
+    val totalTokens: Int?,
+    val completionTokens: Int?,
+    val promptTokens: Int?,
+    val elapsedMs: Long,
+)
+
+private const val MAX_HISTORY_MESSAGES = 10
+private const val COMPRESSION_SYSTEM_PROMPT = "Ты помогаешь сжимать историю сообщений без потери контекста"
+private const val COMPRESSION_SUMMARY_PROMPT = "Сделай summary всего полученного диалога, без учёта этого сообщения, чтобы контекст не потерялся"
 
 class LocalAiServer(
     port: Int,
@@ -27,6 +46,9 @@ class LocalAiServer(
     private val history = mutableListOf<JSONObject>()
     private val permanentHistory = mutableListOf<JSONObject>()
     private var role: Role = Role.DEFAULT
+    private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val compressionJobLock = Any()
+    @Volatile private var compressionJob: Job? = null
 
     init {
         LocalServerRegistry.instance = this
@@ -43,6 +65,7 @@ class LocalAiServer(
 
     override fun serve(session: IHTTPSession): Response {
         return try {
+            waitForCompressionIfNeeded()
             if (session.method != Method.POST || session.uri != "/chat") {
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
             }
@@ -77,7 +100,8 @@ class LocalAiServer(
                     .put("text", prompt)
             )
 
-            val resp = callYandex(finalMessages)
+            val completionResult = callYandex(finalMessages)
+            val responseText = buildClientResponse(completionResult)
 
             // Persist new exchange to both histories
             val userObj = JSONObject()
@@ -85,15 +109,17 @@ class LocalAiServer(
                 .put("text", prompt)
             val assistantObj = JSONObject()
                 .put("role", "assistant")
-                .put("text", resp)
+                .put("text", completionResult.answer)
 
             history.add(userObj)
             history.add(assistantObj)
             permanentHistory.add(JSONObject(userObj.toString()))
             permanentHistory.add(JSONObject(assistantObj.toString()))
 
-//            Log.d(TAG, "${session.uri} response =\n${prettyJson(resp)}")
-            return newFixedLengthResponse(Response.Status.OK, "text/plain", resp.toString()).apply {
+            maybeScheduleCompression(chosenHistory)
+
+//            Log.d(TAG, "${session.uri} response =\n${prettyJson(responseText)}")
+            return newFixedLengthResponse(Response.Status.OK, "text/plain", responseText).apply {
                 addHeader("Access-Control-Allow-Origin", "*")
                 addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
             }
@@ -115,15 +141,15 @@ class LocalAiServer(
         }
     }
 
-    private fun callYandex(messages: JSONArray): String {
+    private fun callYandex(messages: JSONArray, temperature: Double = role.temperature, maxTokens: Int = 1000): CompletionResult {
         val payloadJsonObject = JSONObject()
-            .put("modelUri", "gpt://$folderId/yandexgpt-4-lite/latest")
+            .put("modelUri", "gpt://$folderId/yandexgpt-5.1")
             .put(
                 "completionOptions",
                 JSONObject()
                     .put("stream", false)
-                    .put("temperature", role.temperature)
-                    .put("maxTokens", "1000")
+                    .put("temperature", temperature)
+                    .put("maxTokens", maxTokens)
             )
             .put("messages", messages)
 
@@ -164,20 +190,94 @@ class LocalAiServer(
             val completionTokens = usage?.optInt("completionTokens")
             val promptTokens = usage?.optInt("inputTextTokens")
 
-            val sb = StringBuilder()
-                .append(answer)
-
-            sb.append("\n\nИтоги запроса :\n")
-
-            if (totalTokens != null) sb.append("\n").append("totalTokens : ").append(totalTokens)
-            if (completionTokens != null) sb.append("\n").append("completionTokens : ").append(completionTokens)
-            if (promptTokens != null) sb.append("\n").append("inputTextTokens : ").append(promptTokens)
-            sb.append("\n").append("request_time_ms : ").append(elapsedMs)
-
-            val finalText = sb.toString()
-            Log.d(TAG, "HF response <- text='${finalText}'")
-            return finalText
+            Log.d(TAG, "HF response <- text='${answer}'")
+            return CompletionResult(
+                answer = answer,
+                totalTokens = totalTokens,
+                completionTokens = completionTokens,
+                promptTokens = promptTokens,
+                elapsedMs = elapsedMs,
+            )
         }
+    }
+
+    private fun waitForCompressionIfNeeded() {
+        while (true) {
+            val job = compressionJob ?: return
+            runBlocking { job.join() }
+            if (job === compressionJob) {
+                return
+            }
+        }
+    }
+
+    private fun maybeScheduleCompression(targetHistory: MutableList<JSONObject>) {
+        val historySnapshot = synchronized(targetHistory) {
+            if (targetHistory.size <= MAX_HISTORY_MESSAGES) {
+                return
+            }
+            targetHistory.map { JSONObject(it.toString()) }
+        }
+
+        synchronized(compressionJobLock) {
+            if (compressionJob?.isActive == true) {
+                return
+            }
+            compressionJob = serverScope.launch {
+                try {
+                    val summary = requestHistoryCompression(historySnapshot)
+                    synchronized(targetHistory) {
+                        targetHistory.clear()
+                        targetHistory.add(
+                            JSONObject()
+                                .put("role", "assistant")
+                                .put("text", summary)
+                        )
+                    }
+                    Log.d(TAG, "History compressed to summary (${summary.length} chars)")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to compress history", e)
+                } finally {
+                    synchronized(compressionJobLock) {
+                        compressionJob = null
+                    }
+                }
+            }
+        }
+    }
+
+    private fun requestHistoryCompression(historySnapshot: List<JSONObject>): String {
+        val compressionMessages = JSONArray()
+            .put(
+                JSONObject()
+                    .put("role", "system")
+                    .put("text", COMPRESSION_SYSTEM_PROMPT)
+            )
+
+        historySnapshot.forEach { compressionMessages.put(it) }
+
+        compressionMessages.put(
+            JSONObject()
+                .put("role", "user")
+                .put("text", COMPRESSION_SUMMARY_PROMPT)
+        )
+
+        val response = callYandex(compressionMessages, temperature = 0.3, maxTokens = 1000)
+        return if (response.answer.isNotBlank()) response.answer else "Summary недоступен"
+    }
+
+    private fun buildClientResponse(result: CompletionResult): String {
+        val sb = StringBuilder()
+            .append(result.answer)
+
+        sb.append("\n\nИтоги запроса :\n")
+
+        if (result.totalTokens != null) sb.append("\n").append("totalTokens : ").append(result.totalTokens)
+        if (result.completionTokens != null) sb.append("\n").append("completionTokens : ").append(result.completionTokens)
+        if (result.promptTokens != null) sb.append("\n").append("inputTextTokens : ").append(result.promptTokens)
+        sb.append("\n").append("request_time_ms : ").append(result.elapsedMs)
+
+        return sb.toString()
     }
 
     private fun buildJsonSchema(): JSONObject =
@@ -225,6 +325,10 @@ class LocalAiServer(
                 role.roleDescription
             )
 
+    override fun stop() {
+        super.stop()
+        serverScope.cancel()
+    }
     private fun jsonError(code: Int, message: String): Response {
         val obj = JSONObject().put("error", message)
         val status = when (code) {
