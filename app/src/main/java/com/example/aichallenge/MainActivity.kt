@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                         }
                         else -> StartScreen(
                             onSelectChat = {
-                                switchServer(LocalAiServer(8080))
+                                switchServer(LocalAiServer(8080, applicationContext))
                                 screen = "chat"
                             },
                             onSelectHugging = {
