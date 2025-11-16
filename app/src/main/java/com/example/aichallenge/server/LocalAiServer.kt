@@ -1,5 +1,6 @@
 package com.example.aichallenge.server
 
+import android.content.Context
 import android.util.Log
 import com.example.aichallenge.BuildConfig
 import fi.iki.elonen.NanoHTTPD
@@ -16,6 +17,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 private data class CompletionResult(
     val answer: String,
@@ -31,6 +33,7 @@ private const val COMPRESSION_SUMMARY_PROMPT = "Сделай summary всего 
 
 class LocalAiServer(
     port: Int,
+    context: Context,
 ) : NanoHTTPD("127.0.0.1", port), ChatLocalServer {
 
     private val client = OkHttpClient.Builder()
@@ -43,22 +46,20 @@ class LocalAiServer(
     private val TAG = "LocalAiServer"
     private var apiKey = BuildConfig.YANDEX_API_KEY
     private var folderId = BuildConfig.YC_FOLDER_ID
-    private val history = mutableListOf<JSONObject>()
+    private val historyFile = File(context.applicationContext.filesDir, "local_ai_history.json")
     private val permanentHistory = mutableListOf<JSONObject>()
-    private var role: Role = Role.DEFAULT
+    private val role: Role = Role.DEFAULT
     private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val compressionJobLock = Any()
     @Volatile private var compressionJob: Job? = null
 
     init {
         LocalServerRegistry.instance = this
+        loadHistoryFromDisk()
     }
 
     override fun setRole(newRole: Role) {
-        if (role != newRole) {
-            role = newRole
-            history.clear()
-        }
+        // Roles are disabled for now; ignore requests to change role.
     }
 
     override fun getRole(): Role = role
@@ -66,6 +67,12 @@ class LocalAiServer(
     override fun serve(session: IHTTPSession): Response {
         return try {
             waitForCompressionIfNeeded()
+            if (session.method == Method.GET && session.uri == "/history") {
+                return historyResponse()
+            }
+            if (session.method == Method.POST && session.uri == "/clear") {
+                return clearHistoryResponse()
+            }
             if (session.method != Method.POST || session.uri != "/chat") {
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
             }
@@ -89,11 +96,8 @@ class LocalAiServer(
             }
 
             // Build full conversation: system + stored history + new user message
-            val finalMessages = JSONArray().put(
-                buildSystemMessageFromRole()
-            )
-            val chosenHistory = if (role.isPermanentHistoryNeeded) permanentHistory else history
-            chosenHistory.forEach { finalMessages.put(it) }
+            val finalMessages = JSONArray().put(buildSystemMessageFromRole())
+            synchronized(permanentHistory) { permanentHistory.forEach { finalMessages.put(it) } }
             finalMessages.put(
                 JSONObject()
                     .put("role", "user")
@@ -111,12 +115,11 @@ class LocalAiServer(
                 .put("role", "assistant")
                 .put("text", completionResult.answer)
 
-            history.add(userObj)
-            history.add(assistantObj)
             permanentHistory.add(JSONObject(userObj.toString()))
             permanentHistory.add(JSONObject(assistantObj.toString()))
+            persistHistories()
 
-            maybeScheduleCompression(chosenHistory)
+            maybeScheduleCompression(permanentHistory)
 
 //            Log.d(TAG, "${session.uri} response =\n${prettyJson(responseText)}")
             return newFixedLengthResponse(Response.Status.OK, "text/plain", responseText).apply {
@@ -234,6 +237,7 @@ class LocalAiServer(
                                 .put("text", summary)
                         )
                     }
+                    persistHistories()
                     Log.d(TAG, "History compressed to summary (${summary.length} chars)")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to compress history", e)
@@ -329,6 +333,62 @@ class LocalAiServer(
         super.stop()
         serverScope.cancel()
     }
+
+    private fun historyResponse(): Response {
+        val arr = JSONArray().apply {
+            synchronized(permanentHistory) {
+                permanentHistory.forEach { put(JSONObject(it.toString())) }
+            }
+        }
+        val payload = JSONObject()
+            .put("messages", arr)
+            .put("role", role.name)
+        return newFixedLengthResponse(Response.Status.OK, "application/json", payload.toString()).apply {
+            addHeader("Access-Control-Allow-Origin", "*")
+        }
+    }
+
+    private fun clearHistoryResponse(): Response {
+        synchronized(permanentHistory) {
+            permanentHistory.clear()
+        }
+        persistHistories()
+        return newFixedLengthResponse(Response.Status.OK, "application/json", JSONObject().put("cleared", true).toString()).apply {
+            addHeader("Access-Control-Allow-Origin", "*")
+        }
+    }
+
+    private fun persistHistories() {
+        val permanentCopy = synchronized(permanentHistory) { permanentHistory.map { JSONObject(it.toString()) } }
+        runCatching {
+            historyFile.parentFile?.mkdirs()
+            val payload = JSONObject()
+                .put("permanentHistory", JSONArray().apply { permanentCopy.forEach { put(it) } })
+            historyFile.writeText(payload.toString())
+        }.onFailure { error ->
+            Log.e(TAG, "Failed to persist history to file: ${historyFile.absolutePath}", error)
+        }
+    }
+
+    private fun loadHistoryFromDisk() {
+        if (!historyFile.exists()) return
+        runCatching {
+            val saved = historyFile.readText()
+            if (saved.isBlank()) return@runCatching
+            val obj = JSONObject(saved)
+            obj.optJSONArray("permanentHistory")?.let { arr ->
+                synchronized(permanentHistory) {
+                    permanentHistory.clear()
+                    for (i in 0 until arr.length()) {
+                        arr.optJSONObject(i)?.let { permanentHistory.add(JSONObject(it.toString())) }
+                    }
+                }
+            }
+        }.onFailure { error ->
+            Log.e(TAG, "Failed to load history from file: ${historyFile.absolutePath}", error)
+        }
+    }
+
     private fun jsonError(code: Int, message: String): Response {
         val obj = JSONObject().put("error", message)
         val status = when (code) {

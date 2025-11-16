@@ -2,8 +2,17 @@ package com.example.aichallenge.chat
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -11,34 +20,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.aichallenge.R
-import com.example.aichallenge.server.LocalServerRegistry
-import com.example.aichallenge.server.Role
 
 @Composable
 fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), onBack: () -> Unit = {}) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
-    val showMenu = remember { mutableStateOf(false) }
 
     LaunchedEffect(vm.messages.size) {
         if (vm.messages.isNotEmpty()) {
@@ -58,66 +55,12 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-                .height(0.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(onClick = {
-                try {
-                    val text = context.resources
-                        .openRawResource(R.raw.long_text)
-                        .bufferedReader()
-                        .use { it.readText() }
-                    vm.sendLongText(text)
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Не удалось прочитать файл", Toast.LENGTH_SHORT).show()
-                }
-            }) {
-                Text("Отправить длинный текст")
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = {
-                try {
-                    val text = context.resources
-                        .openRawResource(R.raw.long_text)
-                        .bufferedReader()
-                        .use { it.readText() }
-                    vm.sendLongText(text)
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Не удалось прочитать файл", Toast.LENGTH_SHORT).show()
-                }
-            }) {
-                Text("Отправить длинный текст")
-            }
-            Box {
-                val current = LocalServerRegistry.instance?.getRole() ?: Role.DEFAULT
-                TextButton(onClick = { showMenu.value = true }) { Text("Роль: ${current.label}") }
-                DropdownMenu(
-                    expanded = showMenu.value,
-                    onDismissRequest = { showMenu.value = false }
-                ) {
-                    Role.entries.forEach { r ->
-                        DropdownMenuItem(
-                            text = { Text(r.label) },
-                            leadingIcon = {
-                                if (r == current) Text("✓")
-                            },
-                            onClick = {
-                                LocalServerRegistry.instance?.setRole(r)
-                                showMenu.value = false
-                            }
-                        )
-                    }
-                }
+            Button(onClick = vm::clearHistory, enabled = !vm.isSending) {
+                Text("Очистить чат")
             }
         }
         // Messages list pinned to bottom when few
@@ -148,11 +91,7 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
                         tonalElevation = 1.dp,
                         modifier = Modifier
                             .padding(vertical = 4.dp)
-                            .widthIn(max = 320.dp)
-                            .clickable {
-                                clipboard.setText(AnnotatedString(msg.text))
-                                Toast.makeText(context, "Скопировано", Toast.LENGTH_SHORT).show()
-                            }
+                            .fillMaxWidth(0.9f)
                     ) {
                         Text(
                             text = msg.text,
@@ -192,4 +131,3 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
         }
     }
 }
-
