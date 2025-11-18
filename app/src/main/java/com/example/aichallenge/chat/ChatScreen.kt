@@ -27,8 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -36,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), onBack: () -> Unit = {}) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
 
     LaunchedEffect(vm.messages.size) {
         if (vm.messages.isNotEmpty()) {
@@ -92,6 +96,10 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
                         modifier = Modifier
                             .padding(vertical = 4.dp)
                             .fillMaxWidth(0.9f)
+                            .clickable {
+                                clipboard.setText(AnnotatedString(msg.text))
+                                Toast.makeText(context, "Скопировано", Toast.LENGTH_SHORT).show()
+                            }
                     ) {
                         Text(
                             text = msg.text,

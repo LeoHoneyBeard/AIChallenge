@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.example.aichallenge.BuildConfig
 import fi.iki.elonen.NanoHTTPD
+import com.example.aichallenge.mcp.McpClient
+import io.modelcontextprotocol.kotlin.sdk.Tool
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +27,7 @@ private data class CompletionResult(
     val completionTokens: Int?,
     val promptTokens: Int?,
     val elapsedMs: Long,
+    val usedTool: String? = null,
 )
 
 private const val MAX_HISTORY_MESSAGES = 10
@@ -52,6 +55,7 @@ class LocalAiServer(
     private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val compressionJobLock = Any()
     @Volatile private var compressionJob: Job? = null
+    private val toolMarker = "MCP_TOOL:"
 
     init {
         LocalServerRegistry.instance = this
@@ -96,7 +100,8 @@ class LocalAiServer(
             }
 
             // Build full conversation: system + stored history + new user message
-            val finalMessages = JSONArray().put(buildSystemMessageFromRole())
+            val toolListText = runCatching { buildToolSummary() }.getOrDefault("")
+            val finalMessages = JSONArray().put(buildSystemMessageFromRole(toolListText))
             synchronized(permanentHistory) { permanentHistory.forEach { finalMessages.put(it) } }
             finalMessages.put(
                 JSONObject()
@@ -104,7 +109,31 @@ class LocalAiServer(
                     .put("text", prompt)
             )
 
-            val completionResult = callYandex(finalMessages)
+            var completionResult = callYandex(finalMessages)
+            var usedTool: String? = null
+
+            parseToolRequest(completionResult.answer.orEmpty())?.let { toolReq ->
+                val toolName = toolReq.name
+                usedTool = toolName
+
+                // Record the assistant tool request
+                val toolCallMsg = JSONObject()
+                    .put("role", "assistant")
+                    .put("text", completionResult.answer)
+                finalMessages.put(toolCallMsg)
+
+                val toolResultText = runCatching { runBlocking { McpClient.callTool(toolName, toolReq.parameters) } }
+                    .getOrElse { "Не удалось вызвать инструмент $toolName: ${it.message}" }
+
+                // Add tool result as a new message to the model
+                val toolResultMsg = JSONObject()
+                    .put("role", "user")
+                    .put("text", "Результат инструмента mcp: $toolResultText. На основе результата предоставь пользователю ответ.")
+                finalMessages.put(toolResultMsg)
+
+                completionResult = callYandex(finalMessages).copy(usedTool = usedTool)
+            }
+
             val responseText = buildClientResponse(completionResult)
 
             // Persist new exchange to both histories
@@ -280,6 +309,7 @@ class LocalAiServer(
         if (result.completionTokens != null) sb.append("\n").append("completionTokens : ").append(result.completionTokens)
         if (result.promptTokens != null) sb.append("\n").append("inputTextTokens : ").append(result.promptTokens)
         sb.append("\n").append("request_time_ms : ").append(result.elapsedMs)
+        result.usedTool?.let { sb.append("\n").append("used mcp tool : ").append(it) }
 
         return sb.toString()
     }
@@ -321,13 +351,69 @@ class LocalAiServer(
         )
 
 
-    private fun buildSystemMessageFromRole(): JSONObject =
+    private fun buildSystemMessageFromRole(toolSummary: String): JSONObject =
         JSONObject()
             .put("role", "system")
             .put(
                 "text",
-                role.roleDescription
+                role.roleDescription + if (toolSummary.isNotBlank()) {
+                    "\nу тебя есть доступ к следующим инструментам:\n$toolSummary\n" +
+                        "Для использования инструмента ответь в формате: MCP_TOOL: {\"name\":\"tool.name\",\"parameters\":{...}}. " +
+                        "Например MCP_TOOL: {\"name\":\"list_activities\",\"parameters\":{\"city_id\":\"213\"}}"
+                } else ""
             )
+
+    private fun buildToolSummary(): String = runBlocking {
+        val tools: List<Tool> = runCatching { McpClient.fetchTools() }.getOrDefault(emptyList())
+        if (tools.isEmpty()) return@runBlocking ""
+        tools.joinToString(separator = "\n") { tool ->
+            val desc = tool.description ?: ""
+            val input = tool.inputSchema
+            val inputSchema = runCatching { input.toString() }.getOrDefault(input?.toString().orEmpty())
+            "name: ${tool.name}, description: $desc, inputSchema: $inputSchema"
+        }
+    }
+
+    private data class ToolRequest(val name: String, val parameters: Map<String, Any?>)
+
+    private fun parseToolRequest(answer: String): ToolRequest? {
+        val idx = answer.indexOf(toolMarker, ignoreCase = true)
+        if (idx == -1) return null
+        val after = answer.substring(idx + toolMarker.length).trim()
+        if (after.isBlank()) return null
+
+        if (after.startsWith("{")) {
+            return runCatching {
+                val obj = JSONObject(after)
+                val name = obj.optString("name").trim()
+                if (name.isBlank()) return@runCatching null
+                val paramsObj = obj.optJSONObject("parameters")
+                val params = paramsObj?.toMap() ?: emptyMap()
+                ToolRequest(name, params)
+            }.getOrNull()
+        }
+
+        return ToolRequest(after, emptyMap())
+    }
+
+    private fun JSONObject.toMap(): Map<String, Any?> {
+        val result = mutableMapOf<String, Any?>()
+        keys().forEach { key ->
+            val value = opt(key)
+            result[key] = when (value) {
+                is JSONObject -> value.toMap()
+                is JSONArray -> {
+                    val list = mutableListOf<Any?>()
+                    for (i in 0 until value.length()) {
+                        list.add(value.opt(i))
+                    }
+                    list
+                }
+                else -> value
+            }
+        }
+        return result
+    }
 
     override fun stop() {
         super.stop()

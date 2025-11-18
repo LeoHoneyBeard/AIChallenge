@@ -13,6 +13,8 @@ import com.example.aichallenge.chat.HuggingChatScreen
 import com.example.aichallenge.server.HuggingFaceLocal
 import com.example.aichallenge.server.LocalAiServer
 import com.example.aichallenge.ui.theme.AIChallengeTheme
+import com.example.aichallenge.mcp.McpServerManager
+import com.example.aichallenge.mcp.ToolsScreen
 import fi.iki.elonen.NanoHTTPD
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             AIChallengeTheme {
                 var screen by remember { mutableStateOf("start") }
+                var isMcpRunning by remember { mutableStateOf(McpServerManager.isRunning()) }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         "chat" -> {
@@ -56,6 +59,15 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }
+                        "tools" -> {
+                            BackHandler(enabled = true) {
+                                screen = "start"
+                            }
+                            ToolsScreen(
+                                onBack = { screen = "start" },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
                         else -> StartScreen(
                             onSelectChat = {
                                 switchServer(LocalAiServer(8080, applicationContext))
@@ -65,6 +77,17 @@ class MainActivity : ComponentActivity() {
                                 switchServer(HuggingFaceLocal(8080))
                                 screen = "hugging"
                             },
+                            onSelectTools = { screen = "tools" },
+                            onToggleMcp = {
+                                if (McpServerManager.isRunning()) {
+                                    McpServerManager.stop()
+                                } else {
+                                    McpServerManager.start()
+                                }
+                                isMcpRunning = McpServerManager.isRunning()
+                            },
+                            mcpRunning = isMcpRunning,
+                            mcpEndpoint = McpServerManager.endpoint,
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
@@ -77,6 +100,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         server?.stop()
         server = null
+        McpServerManager.stop()
     }
 
     private fun switchServer(newServer: NanoHTTPD) {
@@ -95,6 +119,10 @@ class MainActivity : ComponentActivity() {
 private fun StartScreen(
     onSelectChat: () -> Unit,
     onSelectHugging: () -> Unit,
+    onSelectTools: () -> Unit,
+    onToggleMcp: () -> Unit,
+    mcpRunning: Boolean,
+    mcpEndpoint: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -108,5 +136,15 @@ private fun StartScreen(
         Button(onClick = onSelectHugging, modifier = Modifier.padding(8.dp)) {
             Text("Hugging Chat (HuggingFaceLocal)")
         }
+        Button(onClick = onSelectTools, modifier = Modifier.padding(8.dp)) {
+            Text("MCP Tools")
+        }
+        Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
+            Text(if (mcpRunning) "Stop MCP server" else "Start MCP server")
+        }
+        Text(
+            text = "MCP SSE: $mcpEndpoint",
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }

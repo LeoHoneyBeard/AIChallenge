@@ -28,9 +28,11 @@ android {
         val yandexKey = localProps.getProperty("YANDEX_API_KEY", "")
         val folderId = localProps.getProperty("YC_FOLDER_ID", "")
         val hfToken = localProps.getProperty("HF_TOKEN", "")
+        val githubToken = localProps.getProperty("GITHUB_TOKEN", "")
         buildConfigField("String", "YANDEX_API_KEY", "\"$yandexKey\"")
         buildConfigField("String", "YC_FOLDER_ID", "\"$folderId\"")
         buildConfigField("String", "HF_TOKEN", "\"$hfToken\"")
+        buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
     }
 
     buildTypes {
@@ -65,6 +67,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.sse)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.mcp.kotlin.sdk)
 
     // Lightweight embedded HTTP server
     implementation(libs.nanohttpd)
