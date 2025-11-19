@@ -3,23 +3,31 @@ package com.example.aichallenge.server
 import android.content.Context
 import android.util.Log
 import com.example.aichallenge.BuildConfig
-import fi.iki.elonen.NanoHTTPD
 import com.example.aichallenge.mcp.McpClient
+import fi.iki.elonen.NanoHTTPD
+import fi.iki.elonen.NanoWSD
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicLong
 
 private data class CompletionResult(
     val answer: String,
@@ -30,6 +38,22 @@ private data class CompletionResult(
     val usedTool: String? = null,
 )
 
+private data class GithubIssueComment(
+    val id: Long,
+    val issueNumber: Int?,
+    val author: String,
+    val body: String,
+    val createdAt: String?,
+    val updatedAt: String?,
+)
+
+private const val ISSUE_SUMMARY_SYSTEM_PROMPT = "Ты даёшь сводку по текущим issue на github по полученным комментариям"
+private const val ISSUE_SUMMARY_TOOL_NAME = "github_issue_comments"
+private const val ISSUE_SUMMARY_REFRESH_MS = 1 * 60 * 1000L
+private const val ISSUE_SUMMARY_COMMENT_LIMIT = 20
+private const val ISSUE_SUMMARY_MAX_BODY_CHARS = 500
+private const val ISSUE_SUMMARY_HEARTBEAT_INTERVAL_MS = 10_000L
+
 private const val MAX_HISTORY_MESSAGES = 10
 private const val COMPRESSION_SYSTEM_PROMPT = "Ты помогаешь сжимать историю сообщений без потери контекста"
 private const val COMPRESSION_SUMMARY_PROMPT = "Сделай summary всего полученного диалога, без учёта этого сообщения, чтобы контекст не потерялся"
@@ -37,7 +61,7 @@ private const val COMPRESSION_SUMMARY_PROMPT = "Сделай summary всего 
 class LocalAiServer(
     port: Int,
     context: Context,
-) : NanoHTTPD("127.0.0.1", port), ChatLocalServer {
+) : NanoWSD("127.0.0.1", port), ChatLocalServer {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
@@ -55,12 +79,23 @@ class LocalAiServer(
     private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val compressionJobLock = Any()
     @Volatile private var compressionJob: Job? = null
+    @Volatile private var issueSummaryJob: Job? = null
+    @Volatile private var lastIssueSummaryAnswer: String? = null
+    @Volatile private var lastIssueSummaryTimestamp: Long = 0L
+    private val issueSummaryVersion = AtomicLong(0)
+    private val issueSummarySockets = Collections.synchronizedSet(mutableSetOf<IssueSummaryWebSocket>())
+    @Volatile private var issueSummaryHeartbeatJob: Job? = null
     private val toolMarker = "MCP_TOOL:"
 
     init {
         LocalServerRegistry.instance = this
         loadHistoryFromDisk()
+        startIssueSummaryJob()
     }
+
+    override fun openWebSocket(handshake: IHTTPSession?): WebSocket =
+        IssueSummaryWebSocket(handshake)
+
 
     override fun setRole(newRole: Role) {
         // Roles are disabled for now; ignore requests to change role.
@@ -68,16 +103,16 @@ class LocalAiServer(
 
     override fun getRole(): Role = role
 
-    override fun serve(session: IHTTPSession): Response {
+    override fun serveHttp(session: IHTTPSession): Response {
         return try {
             waitForCompressionIfNeeded()
-            if (session.method == Method.GET && session.uri == "/history") {
+            if (session.method == NanoHTTPD.Method.GET && session.uri == "/history") {
                 return historyResponse()
             }
-            if (session.method == Method.POST && session.uri == "/clear") {
+            if (session.method == NanoHTTPD.Method.POST && session.uri == "/clear") {
                 return clearHistoryResponse()
             }
-            if (session.method != Method.POST || session.uri != "/chat") {
+            if (session.method != NanoHTTPD.Method.POST || session.uri != "/chat") {
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
             }
 
@@ -231,6 +266,180 @@ class LocalAiServer(
                 elapsedMs = elapsedMs,
             )
         }
+    }
+
+    private fun startIssueSummaryJob() {
+        if (issueSummaryJob != null) return
+        val job = serverScope.launch {
+            while (isActive) {
+                runCatching { fetchIssueSummaryAndStore() }
+                    .onFailure { error ->
+                        if (error !is CancellationException) {
+                            Log.w(TAG, "Issue summary iteration failed", error)
+                        }
+                    }
+                delay(ISSUE_SUMMARY_REFRESH_MS)
+            }
+        }
+        job.invokeOnCompletion { issueSummaryJob = null }
+        issueSummaryJob = job
+    }
+
+    private suspend fun fetchIssueSummaryAndStore() {
+        val comments = fetchIssueCommentsFromMcp()
+        if (comments.isEmpty()) {
+            return
+        }
+        val userMessage = buildIssueSummaryUserMessage(comments)
+        val messages = JSONArray()
+            .put(
+                JSONObject()
+                    .put("role", "system")
+                    .put("text", ISSUE_SUMMARY_SYSTEM_PROMPT)
+            )
+            .put(
+                JSONObject()
+                    .put("role", "user")
+                    .put("text", userMessage)
+            )
+        val completion = callYandex(messages, temperature = 0.2, maxTokens = 800)
+        val answer = completion.answer.trim()
+        if (answer.isEmpty()) {
+            Log.d(TAG, "Issue summary returned empty response")
+            return
+        }
+        storeIssueSummaryAnswer(answer)
+        Log.i(TAG, "GitHub issue summary updated (${answer.length} chars)")
+    }
+
+    private suspend fun fetchIssueCommentsFromMcp(): List<GithubIssueComment> {
+        val args = mapOf("per_page" to ISSUE_SUMMARY_COMMENT_LIMIT)
+        val raw = runCatching { McpClient.callTool(ISSUE_SUMMARY_TOOL_NAME, args) }
+            .getOrElse { error ->
+                Log.e(TAG, "Failed to call MCP tool $ISSUE_SUMMARY_TOOL_NAME", error)
+                return emptyList()
+            }
+        val trimmed = raw.trim()
+        if (!trimmed.startsWith("[")) {
+            Log.w(TAG, "Issue comments payload is not JSON array: ${trimmed.take(120)}")
+            return emptyList()
+        }
+        return parseIssueComments(trimmed)
+    }
+
+    private fun parseIssueComments(raw: String): List<GithubIssueComment> = runCatching {
+        val arr = JSONArray(raw)
+        val result = mutableListOf<GithubIssueComment>()
+        val count = minOf(arr.length(), ISSUE_SUMMARY_COMMENT_LIMIT)
+        for (i in 0 until count) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val id = obj.optLong("id")
+            if (id <= 0L) continue
+            val body = obj.optString("body").orEmpty().trim()
+            if (body.isBlank()) continue
+            val issueUrl = obj.optString("issue_url")
+            val issueNumber = issueUrl
+                .substringAfterLast("/issues/", "")
+                .toIntOrNull()
+            val author = obj.optJSONObject("user")?.optString("login").orEmpty()
+            val createdAt = obj.optString("created_at").takeIf { it.isNotBlank() }
+            val updatedAt = obj.optString("updated_at").takeIf { it.isNotBlank() }
+            result.add(
+                GithubIssueComment(
+                    id = id,
+                    issueNumber = issueNumber,
+                    author = author,
+                    body = body,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                )
+            )
+        }
+        result
+    }.getOrElse { error ->
+        Log.e(TAG, "Failed to parse GitHub issue comments", error)
+        emptyList()
+    }
+
+    private fun buildIssueSummaryUserMessage(comments: List<GithubIssueComment>): String {
+        val sb = StringBuilder("Комментарии по актуальным issue:\n")
+        comments.forEachIndexed { index, comment ->
+            sb.append(index + 1)
+                .append(". Issue #")
+            sb.append(comment.issueNumber?.toString() ?: "?")
+            if (comment.author.isNotBlank()) {
+                sb.append(" (").append(comment.author).append(")")
+            }
+            comment.createdAt?.let { created ->
+                sb.append(" – ").append(created)
+            }
+            sb.append(":\n")
+            sb.append(normalizeCommentBody(comment.body))
+            sb.append("\n\n")
+        }
+        return sb.toString().trim()
+    }
+
+    private fun normalizeCommentBody(body: String): String {
+        val normalized = body
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .replace("\\s+".toRegex(), " ")
+            .trim()
+        if (normalized.length <= ISSUE_SUMMARY_MAX_BODY_CHARS) {
+            return normalized
+        }
+        return normalized.take(ISSUE_SUMMARY_MAX_BODY_CHARS) + "..."
+    }
+
+    private fun storeIssueSummaryAnswer(answer: String) {
+        val assistantObj = JSONObject()
+            .put("role", "assistant")
+            .put("text", answer)
+        synchronized(permanentHistory) {
+            permanentHistory.add(JSONObject(assistantObj.toString()))
+        }
+        persistHistories()
+        maybeScheduleCompression(permanentHistory)
+        lastIssueSummaryAnswer = answer
+        lastIssueSummaryTimestamp = System.currentTimeMillis()
+        issueSummaryVersion.incrementAndGet()
+        broadcastLatestSummary()
+    }
+
+    private fun buildSummaryPayload(): String? {
+        val summary = lastIssueSummaryAnswer ?: return null
+        return JSONObject()
+            .put("type", "issue_summary")
+            .put("text", summary)
+            .put("timestamp", lastIssueSummaryTimestamp)
+            .put("version", issueSummaryVersion.get())
+            .toString()
+    }
+
+    private fun broadcastLatestSummary() {
+        val payload = buildSummaryPayload() ?: return
+        broadcastWebSocketPayload(payload)
+    }
+
+    private fun broadcastHeartbeat() {
+        val payload = JSONObject()
+            .put("type", "heartbeat")
+            .put("timestamp", System.currentTimeMillis())
+            .toString()
+        broadcastWebSocketPayload(payload)
+    }
+
+    private fun broadcastWebSocketPayload(payload: String) {
+        val sockets = synchronized(issueSummarySockets) { issueSummarySockets.toList() }
+        sockets.forEach { socket ->
+            sendPayloadToSocket(socket, payload)
+        }
+    }
+
+    private fun sendPayloadToSocket(socket: IssueSummaryWebSocket, payload: String) {
+        runCatching { socket.send(payload) }
+            .onFailure { removeWebSocket(socket) }
     }
 
     private fun waitForCompressionIfNeeded() {
@@ -417,6 +626,16 @@ class LocalAiServer(
 
     override fun stop() {
         super.stop()
+        issueSummaryJob?.cancel()
+        issueSummaryJob = null
+        issueSummaryHeartbeatJob?.cancel()
+        issueSummaryHeartbeatJob = null
+        synchronized(issueSummarySockets) {
+            issueSummarySockets.forEach { socket ->
+                runCatching { socket.close(WebSocketFrame.CloseCode.GoingAway, "Server stopping", false) }
+            }
+            issueSummarySockets.clear()
+        }
         serverScope.cancel()
     }
 
@@ -486,4 +705,57 @@ class LocalAiServer(
             addHeader("Access-Control-Allow-Origin", "*")
         }
     }
+
+    private fun removeWebSocket(socket: IssueSummaryWebSocket) {
+        issueSummarySockets.remove(socket)
+        runCatching { socket.close(WebSocketFrame.CloseCode.NormalClosure, "closing", false) }
+        stopIssueSummaryHeartbeatIfNeeded()
+    }
+
+    private inner class IssueSummaryWebSocket(handshakeRequest: IHTTPSession?) : WebSocket(handshakeRequest) {
+        override fun onOpen() {
+            issueSummarySockets.add(this)
+            ensureIssueSummaryHeartbeat()
+            buildSummaryPayload()?.let { sendPayloadToSocket(this, it) }
+        }
+
+        override fun onClose(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) {
+            issueSummarySockets.remove(this)
+            stopIssueSummaryHeartbeatIfNeeded()
+        }
+
+        override fun onMessage(message: WebSocketFrame?) {
+            // No-op: server pushes only
+        }
+
+        override fun onPong(pong: WebSocketFrame?) {
+            // No-op
+        }
+
+        override fun onException(exception: IOException?) {
+            if (exception is SocketTimeoutException) {
+                Log.d(TAG, "Issue summary websocket timeout, ignoring")
+                return
+            }
+            removeWebSocket(this)
+        }
+    }
+
+    private fun ensureIssueSummaryHeartbeat() {
+        if (issueSummaryHeartbeatJob?.isActive == true) return
+        issueSummaryHeartbeatJob = serverScope.launch {
+            while (isActive) {
+                broadcastHeartbeat()
+                delay(ISSUE_SUMMARY_HEARTBEAT_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopIssueSummaryHeartbeatIfNeeded() {
+        val hasSockets = synchronized(issueSummarySockets) { issueSummarySockets.isNotEmpty() }
+        if (hasSockets) return
+        issueSummaryHeartbeatJob?.cancel()
+        issueSummaryHeartbeatJob = null
+    }
 }
+

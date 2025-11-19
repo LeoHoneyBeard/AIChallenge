@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,11 @@ fun ChatScreen(modifier: Modifier = Modifier, vm: ChatViewModel = viewModel(), o
     val listState = rememberLazyListState()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+
+    DisposableEffect(vm) {
+        vm.startIssueSummaryUpdates()
+        onDispose { vm.stopIssueSummaryUpdates() }
+    }
 
     LaunchedEffect(vm.messages.size) {
         if (vm.messages.isNotEmpty()) {

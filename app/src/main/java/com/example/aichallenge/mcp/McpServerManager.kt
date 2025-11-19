@@ -150,7 +150,7 @@ object McpServerManager {
                         role = McpRole.assistant,
                         content = TextContent(
                             text = "SSE entrypoint: $endpoint\n" +
-                                "Tools: github_repos\n" +
+                                "Tools: github_repos, github_issue_comments\n" +
                                 "Resources: local://ai-challenge/status\n" +
                                 "Use the first `endpoint` event to know where to POST messages with the sessionId."
                         )
@@ -217,6 +217,36 @@ object McpServerManager {
             val result = fetchGithubRepos(username, perPage)
             CallToolResult.ok(result)
         }
+        // Tool: list GitHub issue comments for LeoHoneyBeard/AIChallenge
+        addTool(
+            name = "github_issue_comments",
+            description = "Returns recent issue comments for repo LeoHoneyBeard/AIChallenge. Optionally filter by issue_number.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put(
+                        "issue_number",
+                        buildJsonObject {
+                            put("type", "integer")
+                            put("description", "Optional GitHub issue number to filter comments.")
+                        }
+                    )
+                    put(
+                        "per_page",
+                        buildJsonObject {
+                            put("type", "integer")
+                            put("description", "How many comments to fetch (1-100). Defaults to 20.")
+                        }
+                    )
+                },
+                required = emptyList(),
+            ),
+        ) { request ->
+            val issueNumber = request.arguments["issue_number"]?.jsonPrimitive?.intOrNull
+            val perPage = request.arguments["per_page"]?.jsonPrimitive?.intOrNull ?: 20
+            val result = fetchGithubIssueComments(issueNumber, perPage)
+            CallToolResult.ok(result)
+        }
+
     }
 
     private suspend fun fetchGithubRepos(username: String, perPage: Int): String {
@@ -241,4 +271,38 @@ object McpServerManager {
             }
         }
     }
+
+
+    private suspend fun fetchGithubIssueComments(issueNumber: Int?, perPage: Int): String {
+        val token = BuildConfig.GITHUB_TOKEN
+        if (token.isBlank()) {
+            return "GITHUB_TOKEN is missing. Add it to local.properties"
+        }
+        val client = HttpClient(ClientCIO)
+        val owner = "LeoHoneyBeard"
+        val repo = "AIChallenge"
+        val safePerPage = perPage.coerceIn(1, 100)
+        val url = if (issueNumber != null) {
+            "https://api.github.com/repos/$owner/$repo/issues/$issueNumber/comments"
+        } else {
+            "https://api.github.com/repos/$owner/$repo/issues/comments"
+        }
+        return client.use {
+            val response = it.get(url) {
+                header("Accept", "application/vnd.github+json")
+                header("Authorization", "Bearer $token")
+                header("X-GitHub-Api-Version", "2022-11-28")
+                parameter("per_page", safePerPage.toString())
+            }
+            if (response.status.value != ClientStatusCode.OK.value) {
+                val label = issueNumber?.let { "#$it" } ?: "repo"
+                return@use "Failed to fetch comments for $label: HTTP ${response.status.value}"
+            }
+            runCatching { response.bodyAsText() }.getOrElse { err ->
+                "Failed to read GitHub response: ${err.message}"
+            }
+        }
+    }
+
+
 }

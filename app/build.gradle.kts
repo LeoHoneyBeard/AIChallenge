@@ -76,6 +76,7 @@ dependencies {
 
     // Lightweight embedded HTTP server
     implementation(libs.nanohttpd)
+    implementation(libs.nanohttpd.websocket)
     // HTTP client to call cloud LLM
     implementation(libs.okhttp)
 
