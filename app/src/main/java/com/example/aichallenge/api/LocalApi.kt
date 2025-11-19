@@ -1,8 +1,8 @@
 package com.example.aichallenge.api
 
 import retrofit2.http.Body
-import retrofit2.http.POST
 import retrofit2.http.GET
+import retrofit2.http.POST
 
 data class HistoryMessageDto(
     val role: String,
