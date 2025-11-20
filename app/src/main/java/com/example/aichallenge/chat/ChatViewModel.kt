@@ -120,12 +120,17 @@ class ChatViewModel : ViewModel() {
     }
 
     fun startIssueSummaryUpdates() {
+        if (!ISSUE_SUMMARY_WS_ENABLED) return
         if (maintainSummarySocket) return
         maintainSummarySocket = true
         connectSummarySocket()
     }
 
     fun stopIssueSummaryUpdates() {
+        if (!ISSUE_SUMMARY_WS_ENABLED) {
+            maintainSummarySocket = false
+            return
+        }
         maintainSummarySocket = false
         summaryReconnectJob?.cancel()
         summaryReconnectJob = null
@@ -199,5 +204,6 @@ class ChatViewModel : ViewModel() {
     companion object {
         private const val SUMMARY_WS_URL = "ws://127.0.0.1:8080/issueSummary"
         private const val SUMMARY_RECONNECT_DELAY_MS = 2_000L
+        private const val ISSUE_SUMMARY_WS_ENABLED = false
     }
 }

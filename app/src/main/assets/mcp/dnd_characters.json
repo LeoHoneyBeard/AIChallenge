@@ -1,0 +1,162 @@
+[
+  {
+    "id": "CH-001",
+    "name": "Aelar Sunshadow",
+    "race": "High Elf",
+    "class": "Wizard",
+    "level": 5,
+    "stats": { "str": 10, "dex": 16, "con": 12, "wis": 14, "int": 18, "cha": 11 }
+  },
+  {
+    "id": "CH-002",
+    "name": "Brakka Stoneheart",
+    "race": "Mountain Dwarf",
+    "class": "Cleric",
+    "level": 6,
+    "stats": { "str": 14, "dex": 10, "con": 16, "wis": 17, "int": 12, "cha": 9 }
+  },
+  {
+    "id": "CH-003",
+    "name": "Calder Swiftstep",
+    "race": "Lightfoot Halfling",
+    "class": "Rogue",
+    "level": 4,
+    "stats": { "str": 9, "dex": 18, "con": 12, "wis": 13, "int": 14, "cha": 15 }
+  },
+  {
+    "id": "CH-004",
+    "name": "Dorn Blackhammer",
+    "race": "Human",
+    "class": "Fighter",
+    "level": 7,
+    "stats": { "str": 18, "dex": 13, "con": 16, "wis": 11, "int": 10, "cha": 12 }
+  },
+  {
+    "id": "CH-005",
+    "name": "Elowen Thorne",
+    "race": "Half-Elf",
+    "class": "Warlock",
+    "level": 5,
+    "stats": { "str": 8, "dex": 14, "con": 13, "wis": 12, "int": 15, "cha": 18 }
+  },
+  {
+    "id": "CH-006",
+    "name": "Fennric Mossbloom",
+    "race": "Forest Gnome",
+    "class": "Druid",
+    "level": 6,
+    "stats": { "str": 8, "dex": 15, "con": 12, "wis": 17, "int": 14, "cha": 11 }
+  },
+  {
+    "id": "CH-007",
+    "name": "Garruk Ironhide",
+    "race": "Half-Orc",
+    "class": "Barbarian",
+    "level": 6,
+    "stats": { "str": 18, "dex": 12, "con": 17, "wis": 10, "int": 8, "cha": 9 }
+  },
+  {
+    "id": "CH-008",
+    "name": "Helena Dawnsong",
+    "race": "Human",
+    "class": "Bard",
+    "level": 5,
+    "stats": { "str": 9, "dex": 14, "con": 12, "wis": 13, "int": 15, "cha": 18 }
+  },
+  {
+    "id": "CH-009",
+    "name": "Ilyana Ravenshade",
+    "race": "Tiefling",
+    "class": "Sorcerer",
+    "level": 5,
+    "stats": { "str": 8, "dex": 14, "con": 13, "wis": 12, "int": 13, "cha": 18 }
+  },
+  {
+    "id": "CH-010",
+    "name": "Jorand Emberfist",
+    "race": "Mountain Dwarf",
+    "class": "Paladin",
+    "level": 7,
+    "stats": { "str": 17, "dex": 10, "con": 16, "wis": 12, "int": 11, "cha": 16 }
+  },
+  {
+    "id": "CH-011",
+    "name": "Kaelin Riverwind",
+    "race": "Wood Elf",
+    "class": "Ranger",
+    "level": 6,
+    "stats": { "str": 12, "dex": 18, "con": 13, "wis": 15, "int": 11, "cha": 10 }
+  },
+  {
+    "id": "CH-012",
+    "name": "Lira Mistwalker",
+    "race": "Half-Elf",
+    "class": "Monk",
+    "level": 5,
+    "stats": { "str": 11, "dex": 17, "con": 13, "wis": 15, "int": 12, "cha": 14 }
+  },
+  {
+    "id": "CH-013",
+    "name": "Merric Stoutbarrel",
+    "race": "Stout Halfling",
+    "class": "Artificer",
+    "level": 4,
+    "stats": { "str": 8, "dex": 16, "con": 14, "wis": 12, "int": 17, "cha": 11 }
+  },
+  {
+    "id": "CH-014",
+    "name": "Nyx Shadowdusk",
+    "race": "Drow",
+    "class": "Rogue",
+    "level": 7,
+    "stats": { "str": 10, "dex": 19, "con": 12, "wis": 13, "int": 14, "cha": 15 }
+  },
+  {
+    "id": "CH-015",
+    "name": "Orrin Stormbrand",
+    "race": "Human",
+    "class": "Cleric",
+    "level": 8,
+    "stats": { "str": 14, "dex": 11, "con": 15, "wis": 18, "int": 12, "cha": 13 }
+  },
+  {
+    "id": "CH-016",
+    "name": "Perrin Willowmere",
+    "race": "Lightfoot Halfling",
+    "class": "Bard",
+    "level": 4,
+    "stats": { "str": 8, "dex": 16, "con": 12, "wis": 13, "int": 14, "cha": 17 }
+  },
+  {
+    "id": "CH-017",
+    "name": "Quill Emberlight",
+    "race": "Rock Gnome",
+    "class": "Wizard",
+    "level": 6,
+    "stats": { "str": 7, "dex": 14, "con": 12, "wis": 13, "int": 19, "cha": 10 }
+  },
+  {
+    "id": "CH-018",
+    "name": "Ragnar Frostvein",
+    "race": "Goliath",
+    "class": "Barbarian",
+    "level": 8,
+    "stats": { "str": 19, "dex": 12, "con": 17, "wis": 11, "int": 9, "cha": 10 }
+  },
+  {
+    "id": "CH-019",
+    "name": "Selene Nightbloom",
+    "race": "Human",
+    "class": "Druid",
+    "level": 7,
+    "stats": { "str": 9, "dex": 14, "con": 13, "wis": 18, "int": 15, "cha": 12 }
+  },
+  {
+    "id": "CH-020",
+    "name": "Tarin Goldmantle",
+    "race": "Dragonborn",
+    "class": "Paladin",
+    "level": 6,
+    "stats": { "str": 17, "dex": 11, "con": 15, "wis": 12, "int": 10, "cha": 17 }
+  }
+]
