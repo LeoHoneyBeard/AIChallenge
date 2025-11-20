@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Echoes of the Ember Gate",
+    "summary": "Ancient runes beneath a ruined elven observatory unlock a planar gateway that threatens to pour elemental fire into the Heartlands unless the heroes decipher the seals.",
+    "participants": [
+      "Aelar Sunshadow",
+      "Brakka Stoneheart",
+      "Helena Dawnsong",
+      "Tarin Goldmantle",
+      "Garruk Ironhide"
+    ]
+  },
+  {
+    "name": "Vault of the Frostvein",
+    "summary": "A lost dwarven vault buried within glacial caverns awakens a primordial frost spirit, forcing unlikely allies to brave the blizzard-haunted depths.",
+    "participants": [
+      "Ragnar Frostvein",
+      "Garruk Ironhide",
+      "Nyx Shadowdusk",
+      "Calder Swiftstep"
+    ]
+  },
+  {
+    "name": "Whispers of the Shadowdusk",
+    "summary": "A cabal of Shadar-kai warlocks sows despair across the frontier; only a band of subtle operatives can trace the whispers back to their bleak citadel.",
+    "participants": [
+      "Nyx Shadowdusk",
+      "Lira Mistwalker",
+      "Merric Stoutbarrel",
+      "Garruk Ironhide"
+    ]
+  },
+  {
+    "name": "Siege of Goldmantle Keep",
+    "summary": "Devils loyal to an upstart archduke lay siege to Tarin's ancestral keep, and the heroes must fortify the walls, rally allies, and break the infernal war machine.",
+    "participants": [
+      "Tarin Goldmantle",
+      "Jorand Emberfist",
+      "Orrin Stormbrand",
+      "Nyx Shadowdusk",
+      "Garruk Ironhide"
+    ]
+  },
+  {
+    "name": "Labyrinth of the Mistwalker",
+    "summary": "Portals bloom throughout the Emerald Vale, forming a shifting maze of Feywild echoes; the party must navigate riddles and bargains to reset the planar anchors.",
+    "participants": [
+      "Lira Mistwalker",
+      "Quill Emberlight",
+      "Nyx Shadowdusk",
+      "Garruk Ironhide"
+    ]
+  }
+]

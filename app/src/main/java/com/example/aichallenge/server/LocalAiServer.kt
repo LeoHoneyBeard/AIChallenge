@@ -53,6 +53,7 @@ private const val ISSUE_SUMMARY_REFRESH_MS = 1 * 60 * 1000L
 private const val ISSUE_SUMMARY_COMMENT_LIMIT = 20
 private const val ISSUE_SUMMARY_MAX_BODY_CHARS = 500
 private const val ISSUE_SUMMARY_HEARTBEAT_INTERVAL_MS = 10_000L
+private const val ISSUE_SUMMARY_FEATURE_ENABLED = false
 
 private const val MAX_HISTORY_MESSAGES = 10
 private const val COMPRESSION_SYSTEM_PROMPT = "Ты помогаешь сжимать историю сообщений без потери контекста"
@@ -90,7 +91,9 @@ class LocalAiServer(
     init {
         LocalServerRegistry.instance = this
         loadHistoryFromDisk()
-        startIssueSummaryJob()
+        if (ISSUE_SUMMARY_FEATURE_ENABLED) {
+            startIssueSummaryJob()
+        }
     }
 
     override fun openWebSocket(handshake: IHTTPSession?): WebSocket =
@@ -145,28 +148,35 @@ class LocalAiServer(
             )
 
             var completionResult = callYandex(finalMessages)
-            var usedTool: String? = null
+            val usedTools = mutableListOf<String>()
 
-            parseToolRequest(completionResult.answer.orEmpty())?.let { toolReq ->
+            while (true) {
+                val toolReq = parseToolRequest(completionResult.answer.orEmpty()) ?: break
                 val toolName = toolReq.name
-                usedTool = toolName
+                if (toolName.isBlank()) break
+                usedTools.add(toolName)
 
                 // Record the assistant tool request
-                val toolCallMsg = JSONObject()
-                    .put("role", "assistant")
-                    .put("text", completionResult.answer)
-                finalMessages.put(toolCallMsg)
+                finalMessages.put(
+                    JSONObject()
+                        .put("role", "assistant")
+                        .put("text", completionResult.answer)
+                )
 
                 val toolResultText = runCatching { runBlocking { McpClient.callTool(toolName, toolReq.parameters) } }
-                    .getOrElse { "Не удалось вызвать инструмент $toolName: ${it.message}" }
+                    .getOrElse { "Не получилось выполнить MCP инструмент $toolName: ${it.message}" }
 
                 // Add tool result as a new message to the model
-                val toolResultMsg = JSONObject()
-                    .put("role", "user")
-                    .put("text", "Результат инструмента mcp: $toolResultText. На основе результата предоставь пользователю ответ.")
-                finalMessages.put(toolResultMsg)
+                finalMessages.put(
+                    JSONObject()
+                        .put("role", "user")
+                        .put("text", "Результат обращения к mcp: $toolResultText. Ты обязан проанализировать полученный ответ и либо вернуть запрос на использование другого инструмента, либо дать итоговое решение пользователю.")
+                )
 
-                completionResult = callYandex(finalMessages).copy(usedTool = usedTool)
+                completionResult = callYandex(finalMessages)
+            }
+            if (usedTools.isNotEmpty()) {
+                completionResult = completionResult.copy(usedTool = usedTools.joinToString(", "))
             }
 
             val responseText = buildClientResponse(completionResult)
@@ -208,7 +218,7 @@ class LocalAiServer(
         }
     }
 
-    private fun callYandex(messages: JSONArray, temperature: Double = role.temperature, maxTokens: Int = 1000): CompletionResult {
+    private fun callYandex(messages: JSONArray, temperature: Double = role.temperature, maxTokens: Int = 2000): CompletionResult {
         val payloadJsonObject = JSONObject()
             .put("modelUri", "gpt://$folderId/yandexgpt-5.1")
             .put(
@@ -567,8 +577,10 @@ class LocalAiServer(
                 "text",
                 role.roleDescription + if (toolSummary.isNotBlank()) {
                     "\nу тебя есть доступ к следующим инструментам:\n$toolSummary\n" +
-                        "Для использования инструмента ответь в формате: MCP_TOOL: {\"name\":\"tool.name\",\"parameters\":{...}}. " +
-                        "Например MCP_TOOL: {\"name\":\"list_activities\",\"parameters\":{\"city_id\":\"213\"}}"
+                        "Ты можешь запросить доступ к любому инструменту. \n" +
+                        "Если для использования инструмента у тебя не хватает данных, но они могут быть в другом инструменту, ты можешь сначала вернуть ответ для использования другого инструмента, у которого эти данные есть. +\n" +
+                        "Для запроса доступа к инструменту ответь в формате: MCP_TOOL: {\"name\":\"tool.name\",\"parameters\":{...}}. " +
+                        "Например MCP_TOOL: {\"name\":\"list_activities\",\"parameters\":{\"city_id\":\"213\"}}" + "\n"
                 } else ""
             )
 

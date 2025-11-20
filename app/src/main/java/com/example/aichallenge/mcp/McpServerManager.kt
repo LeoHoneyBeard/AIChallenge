@@ -1,8 +1,15 @@
 package com.example.aichallenge.mcp
 
+import android.content.Context
 import android.util.Log
 import com.example.aichallenge.BuildConfig
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
@@ -12,20 +19,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.sse
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO as ClientCIO
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.parameter
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode as ClientStatusCode
-import io.ktor.server.application.install
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.GetPromptResult
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.PromptMessage
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
-import io.modelcontextprotocol.kotlin.sdk.Role as McpRole
 import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
@@ -39,12 +37,18 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import io.ktor.client.engine.cio.CIO as ClientCIO
+import io.ktor.http.HttpStatusCode as ClientStatusCode
+import io.modelcontextprotocol.kotlin.sdk.Role as McpRole
 
 /**
  * Starts and stops an MCP server (SSE transport) inside the Android app process.
@@ -53,16 +57,27 @@ object McpServerManager {
     private const val TAG = "McpServer"
     private const val HOST = "127.0.0.1"
     private const val PORT = 11020
+    private const val DND_CHARACTERS_ASSET = "mcp/dnd_characters.json"
+    private const val DND_SPELLS_ASSET = "mcp/dnd_spells.json"
+    private const val DND_CAMPAIGNS_ASSET = "mcp/my_dnd_campaigns.json"
 
     private val running = AtomicBoolean(false)
     private var engine: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
     private var startedAt: Instant? = null
     private val sessions = ConcurrentHashMap<String, ServerSession>()
+    @Volatile private var appContext: Context? = null
+    private val dndCharactersData: JSONArray by lazy { loadJsonArrayAsset(DND_CHARACTERS_ASSET) }
+    private val dndSpellsData: JSONArray by lazy { loadJsonArrayAsset(DND_SPELLS_ASSET) }
+    private val dndCampaignsData: JSONArray by lazy { loadJsonArrayAsset(DND_CAMPAIGNS_ASSET) }
 
     // SSE entrypoint (no trailing slash) to match baseUrl logic of SseClientTransport.
     val endpoint: String get() = "http://$HOST:$PORT/mcp"
 
     fun isRunning(): Boolean = running.get()
+
+    fun setAppContext(context: Context) {
+        appContext = context.applicationContext
+    }
 
     fun start(): Boolean {
         if (running.get()) return false
@@ -150,7 +165,7 @@ object McpServerManager {
                         role = McpRole.assistant,
                         content = TextContent(
                             text = "SSE entrypoint: $endpoint\n" +
-                                "Tools: github_repos, github_issue_comments\n" +
+                                "Tools: github_repos, github_issue_comments, dnd_characters, dnd_spells_for_class\n" +
                                 "Resources: local://ai-challenge/status\n" +
                                 "Use the first `endpoint` event to know where to POST messages with the sessionId."
                         )
@@ -247,6 +262,98 @@ object McpServerManager {
             CallToolResult.ok(result)
         }
 
+        addTool(
+            name = "dnd_characters",
+            description = "Returns a JSON object with a `characters` array describing the heroes that appear in the `dnd_campaigns` tool; each record includes id, name, race, class, level, and STR/DEX/CON/WIS/INT/CHA stats.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject { },
+                required = emptyList()
+            )
+        ) {
+            val result = runCatching { dndCharactersJson() }
+                .getOrElse { error ->
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent("Failed to load characters: ${error.message}")),
+                        isError = true
+                    )
+                }
+            CallToolResult.ok(result)
+        }
+
+        addTool(
+            name = "dnd_campaigns",
+            description = "Returns the list of D&D campaigns (name, summary, participants) sourced from the local compendium.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject { },
+                required = emptyList()
+            )
+        ) {
+            val result = runCatching { dndCampaignsJson() }
+                .getOrElse { error ->
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent("Failed to load campaigns: ${error.message}")),
+                        isError = true
+                    )
+                }
+            CallToolResult.ok(result)
+        }
+
+        addTool(
+            name = "dnd_spells_for_class",
+            description = "Returns the spells available to one or more D&D classes and their level requirements.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put(
+                        "class_names",
+                        buildJsonObject {
+                            put("type", "array")
+                            put(
+                                "items",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "Class name such as Wizard, Cleric, Paladin.")
+                                }
+                            )
+                            put("description", "List of class names; spells for any of them will be returned.")
+                        }
+                    )
+                    put(
+                        "class_name",
+                        buildJsonObject {
+                            put("type", "string")
+                            put("description", "(Deprecated) Single class name. Use class_names instead.")
+                        }
+                    )
+                },
+                required = emptyList()
+            )
+        ) { request ->
+            val classesFromArray = request.arguments["class_names"]?.jsonArray
+                ?.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }
+                ?.filter { it.isNotEmpty() }
+                .orEmpty()
+            val legacySingle = request.arguments["class_name"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+            val classNames = when {
+                classesFromArray.isNotEmpty() -> classesFromArray
+                legacySingle.isNotBlank() -> listOf(legacySingle)
+                else -> emptyList()
+            }
+            if (classNames.isEmpty()) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent("Provide at least one class via class_names.")),
+                    isError = true
+                )
+            }
+            val result = runCatching { spellsForClassesJson(classNames) }
+                .getOrElse { error ->
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent("Failed to load spells: ${error.message}")),
+                        isError = true
+                    )
+                }
+            CallToolResult.ok(result)
+        }
+
     }
 
     private suspend fun fetchGithubRepos(username: String, perPage: Int): String {
@@ -305,4 +412,47 @@ object McpServerManager {
     }
 
 
+    private fun requireAppContext(): Context =
+        appContext ?: throw IllegalStateException("Call McpServerManager.setAppContext() before using MCP tools that need local assets.")
+
+    private fun loadJsonArrayAsset(assetName: String): JSONArray {
+        val text = requireAppContext().assets.open(assetName).bufferedReader().use { it.readText() }
+        return JSONArray(text)
+    }
+
+    private fun dndCharactersJson(): String = JSONObject()
+        .put("characters", dndCharactersData)
+        .toString()
+
+    private fun dndCampaignsJson(): String = JSONObject()
+        .put("campaigns", dndCampaignsData)
+        .toString()
+
+    private fun spellsForClassesJson(classNames: List<String>): String {
+        val normalized = classNames.mapNotNull { it.trim().takeIf { trimmed -> trimmed.isNotEmpty() } }
+        if (normalized.isEmpty()) {
+            return JSONObject()
+                .put("message", "No valid class names provided.")
+                .toString()
+        }
+        val normalizedLookup = normalized.map { it.lowercase() }.toSet()
+        val filtered = JSONArray()
+        for (i in 0 until dndSpellsData.length()) {
+            val spell = dndSpellsData.optJSONObject(i) ?: continue
+            val spellClasses = spell.optJSONArray("classes") ?: continue
+            for (j in 0 until spellClasses.length()) {
+                if (normalizedLookup.contains(spellClasses.optString(j).lowercase())) {
+                    filtered.put(spell)
+                    break
+                }
+            }
+        }
+        if (filtered.length() == 0) {
+            return JSONObject()
+                .put("classes", JSONArray(normalized))
+                .put("message", "No spells found for the provided classes in the local compendium.")
+                .toString()
+        }
+        return filtered.toString()
+    }
 }

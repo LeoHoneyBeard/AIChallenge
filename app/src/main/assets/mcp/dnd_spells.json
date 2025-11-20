@@ -1,0 +1,925 @@
+[
+  {
+    "name": "Fireball",
+    "description": "A bright streak flashes to a point you choose, exploding into flames that deal 8d6 fire damage to creatures in a 20-foot radius.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Cure Wounds",
+    "description": "A creature you touch regains hit points equal to 1d8 + your spellcasting ability modifier.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Bard",
+      "Paladin",
+      "Artificer"
+    ]
+  },
+  {
+    "name": "Shield",
+    "description": "An invisible barrier of magical force grants +5 AC and negates magic missile until the start of your next turn.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Artificer"
+    ]
+  },
+  {
+    "name": "Eldritch Blast",
+    "description": "A beam of crackling energy streaks toward a creature, dealing 1d10 force damage; bolts scale with level.",
+    "requiredLevel": 1,
+    "classes": [
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Bless",
+    "description": "Up to three creatures gain +1d4 to attack rolls and saving throws for the duration.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Hunter's Mark",
+    "description": "You mark a creature, dealing an extra 1d6 damage on weapon attacks and gaining advantage on tracking it.",
+    "requiredLevel": 3,
+    "classes": [
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Mage Armor",
+    "description": "Touching a willing creature surrounds it with protective magic, setting its AC to 13 + Dexterity modifier.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Artificer"
+    ]
+  },
+  {
+    "name": "Spiritual Weapon",
+    "description": "You create a floating spectral weapon that makes melee spell attacks as a bonus action, dealing 1d8 + modifier force damage.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Hex",
+    "description": "You curse a creature for up to an hour, adding 1d6 necrotic damage to your attacks and giving it disadvantage on chosen ability checks.",
+    "requiredLevel": 1,
+    "classes": [
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Silvery Barbs",
+    "description": "When a creature succeeds on an attack, ability check, or save, you impose disadvantage and grant advantage to another creature.",
+    "requiredLevel": 3,
+    "classes": [
+      "Bard",
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Spirit Guardians",
+    "description": "Spectral guardians swirl around you dealing 3d8 radiant or necrotic damage to enemies in a 15-foot radius and halving their speed.",
+    "requiredLevel": 7,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Swift Quiver",
+    "description": "You transmute your quiver to produce endless ammunition and can make two extra ranged attacks each round.",
+    "requiredLevel": 9,
+    "classes": [
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Haste",
+    "description": "Choose a willing creature; its speed doubles, gains +2 AC, advantage on Dex saves, and an extra action each turn.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Artificer"
+    ]
+  },
+  {
+    "name": "Mass Cure Wounds",
+    "description": "A wave of healing energy restores 3d8 + modifier hit points to up to six creatures in a 30-foot radius.",
+    "requiredLevel": 9,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Hold Person",
+    "description": "Choose a humanoid that must succeed on a Wisdom save or become paralyzed for the duration; higher slots affect more targets.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric",
+      "Wizard",
+      "Druid",
+      "Bard",
+      "Sorcerer",
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Wrathful Smite",
+    "description": "The next time you hit with a melee weapon, the attack deals an extra 1d6 psychic damage and can frighten the target.",
+    "requiredLevel": 3,
+    "classes": [
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Magic Missile",
+    "description": "Three glowing darts unerringly strike creatures you can see, each dealing 1d4 + 1 force damage with more darts at higher slots.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Detect Magic",
+    "description": "For ten minutes you sense the presence of magic within 30 feet and learn the school of any visible aura.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Cleric",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Identify",
+    "description": "You learn the properties, command words, charges, and attunement requirements of a magic item or spell effect you touch.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Detect Thoughts",
+    "description": "You focus on a creature within 30 feet to read its surface thoughts and can probe deeper with a Wisdom save.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Suggestion",
+    "description": "You magically influence a creature with a reasonable command that lasts up to eight hours if it fails a Wisdom save.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Misty Step",
+    "description": "Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space you can see as a bonus action.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Counterspell",
+    "description": "You interrupt a creature casting a spell; if it is 3rd level or lower it fails, otherwise make an ability check.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Dispel Magic",
+    "description": "Choose one creature or object; spells of 3rd level or lower end automatically, higher-level spells require a check.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Cleric",
+      "Bard",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Fly",
+    "description": "A willing creature gains a flying speed of 60 feet for ten minutes while concentration lasts.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock"
+    ]
+  },
+  {
+    "name": "Lightning Bolt",
+    "description": "A stroke of lightning forms a 100-foot line that deals 8d6 lightning damage to creatures that fail a Dexterity save.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Cone of Cold",
+    "description": "A frigid blast erupts in a 60-foot cone, dealing 8d8 cold damage or half on a successful Constitution save.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Wish",
+    "description": "You reshape reality, duplicating lower-level spells without components or producing powerful effects at great risk.",
+    "requiredLevel": 17,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Meteor Swarm",
+    "description": "Four blazing spheres rain destruction, each exploding for 20d6 fire and 20d6 bludgeoning damage in 40-foot bursts.",
+    "requiredLevel": 17,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Revivify",
+    "description": "You touch a creature that died within the last minute to restore it to life with 1 hit point.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Raise Dead",
+    "description": "You return a creature dead no longer than ten days to life with reduced hit points and lingering penalties.",
+    "requiredLevel": 9,
+    "classes": [
+      "Cleric",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Resurrection",
+    "description": "A creature dead up to a century is restored to life with full hit points after a lengthy casting ritual.",
+    "requiredLevel": 13,
+    "classes": [
+      "Cleric",
+      "Bard"
+    ]
+  },
+  {
+    "name": "True Resurrection",
+    "description": "You bring a creature back to life regardless of how long it has been dead, provided some part of it remains.",
+    "requiredLevel": 17,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Time Stop",
+    "description": "You briefly stop time for everyone but yourself, taking up to 1d4 + 1 extra turns while attackers are frozen.",
+    "requiredLevel": 17,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Polymorph",
+    "description": "A creature transforms into a beast form of CR equal to its level while the spell lasts or until its new form drops to 0 HP.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Disintegrate",
+    "description": "A thin green ray deals 10d6 + 40 force damage, disintegrating targets reduced to 0 hit points.",
+    "requiredLevel": 11,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Banishment",
+    "description": "You send a creature to a harmless demiplane or back to its native plane if it fails a Charisma save.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Cleric",
+      "Paladin",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Invisibility",
+    "description": "A creature you touch becomes invisible for up to an hour until it attacks or casts a spell.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Greater Invisibility",
+    "description": "You or a creature you touch becomes invisible even while attacking or casting for up to one minute.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Animate Dead",
+    "description": "You raise a corpse or pile of bones as a skeleton or zombie under your control for 24 hours.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Wall of Force",
+    "description": "An invisible wall of force appears in a shape you choose, immune to damage and only dispelled by disintegrate.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Wall of Fire",
+    "description": "You create a wall of roaring flames dealing 5d8 fire damage to creatures ending their turn within 10 feet of one side.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Wall of Stone",
+    "description": "A six-inch-thick wall of stone springs into existence and can become permanent if you concentrate for the full duration.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Teleport",
+    "description": "You and up to eight willing creatures instantly travel to a familiar location with a mishap chance for unknown circles.",
+    "requiredLevel": 13,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Teleportation Circle",
+    "description": "You draw a sigil on the floor forming a permanent teleport circle if cast in the same spot every day for a year.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Dimension Door",
+    "description": "You teleport yourself and one willing creature within 500 feet to a location you can visualize or describe.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Shield of Faith",
+    "description": "A shimmering field surrounds a creature of your choice, granting +2 AC for the duration.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Guiding Bolt",
+    "description": "A flash of light deals 4d6 radiant damage and gives the next attack advantage against the target.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Inflict Wounds",
+    "description": "Make a melee spell attack that deals 3d10 necrotic damage, scaling with higher spell slots.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Prayer of Healing",
+    "description": "After ten minutes you heal up to six creatures for 2d8 + modifier hit points.",
+    "requiredLevel": 3,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Beacon of Hope",
+    "description": "You grant up to three creatures advantage on Wisdom saves and death saves while all healing restores the maximum possible.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Death Ward",
+    "description": "You touch a creature to grant it a one-time protection from death or instant stabilization.",
+    "requiredLevel": 7,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Heroes' Feast",
+    "description": "You conjure a magnificent feast that cures diseases, grants immunity to poison, and boosts hit points for 24 hours.",
+    "requiredLevel": 11,
+    "classes": [
+      "Cleric",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Detect Evil and Good",
+    "description": "For ten minutes you sense aberrations, celestials, elementals, fey, fiends, or undead within 30 feet.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Protection from Evil and Good",
+    "description": "A willing creature gains protection from aberrations, celestials, elementals, fey, fiends, and undead imposing disadvantage on attacks.",
+    "requiredLevel": 1,
+    "classes": [
+      "Cleric",
+      "Paladin",
+      "Warlock",
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Magic Weapon",
+    "description": "A nonmagical weapon becomes a +1 magical weapon (higher bonus at higher slots) for the duration.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Stoneskin",
+    "description": "You toughen a willing creature's flesh, granting resistance to nonmagical bludgeoning, piercing, and slashing damage.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Barkskin",
+    "description": "A target's skin becomes as tough as bark, setting its AC to 16 while the spell lasts.",
+    "requiredLevel": 3,
+    "classes": [
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Call Lightning",
+    "description": "A storm cloud forms overhead letting you call down bolts that deal 3d10 lightning damage each round.",
+    "requiredLevel": 5,
+    "classes": [
+      "Druid"
+    ]
+  },
+  {
+    "name": "Conjure Animals",
+    "description": "You summon fey spirits that take beast shapes such as wolves or giant eagles to fight for you.",
+    "requiredLevel": 5,
+    "classes": [
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Conjure Woodland Beings",
+    "description": "You summon fey creatures of CR 2 or lower that obey your verbal commands for up to one hour.",
+    "requiredLevel": 7,
+    "classes": [
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Spike Growth",
+    "description": "The ground erupts with spikes; creatures moving through take 2d4 piercing damage for every 5 feet traveled.",
+    "requiredLevel": 3,
+    "classes": [
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Plant Growth",
+    "description": "You cause vegetation to overgrow, either enriching a wide area or creating difficult terrain in a 100-foot radius.",
+    "requiredLevel": 5,
+    "classes": [
+      "Druid",
+      "Ranger",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Wind Wall",
+    "description": "A wall of powerful wind rises to deflect arrows, small flying creatures, and gases while dealing 3d8 bludgeoning damage.",
+    "requiredLevel": 5,
+    "classes": [
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Flame Blade",
+    "description": "A fiery scimitar appears in your hand dealing 3d6 fire damage on a hit and shedding bright light.",
+    "requiredLevel": 3,
+    "classes": [
+      "Druid"
+    ]
+  },
+  {
+    "name": "Flaming Sphere",
+    "description": "A five-foot-diameter sphere of fire rolls around burning creatures for 2d6 fire damage on failed saves.",
+    "requiredLevel": 3,
+    "classes": [
+      "Druid",
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Heat Metal",
+    "description": "Choose a manufactured metal object; it glows red hot dealing 2d8 fire damage and forcing creatures to drop it.",
+    "requiredLevel": 3,
+    "classes": [
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Ice Storm",
+    "description": "Hailstones batter a 20-foot radius, dealing bludgeoning and cold damage while turning the area into difficult terrain.",
+    "requiredLevel": 7,
+    "classes": [
+      "Druid",
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Cloudkill",
+    "description": "You create a moving cloud of poisonous fog that heavily obscures and deals 5d8 poison damage each round.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Acid Arrow",
+    "description": "A shimmering green arrow deals 4d4 acid damage on a hit plus 2d4 damage at the end of the target's next turn.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Scorching Ray",
+    "description": "You create three rays of fire making ranged spell attacks for 2d6 fire damage each.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Burning Hands",
+    "description": "A sheet of flames shoots from your hands dealing 3d6 fire damage in a 15-foot cone, or half on a save.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Charm Person",
+    "description": "You attempt to charm a humanoid you can see; if it fails a Wisdom save it regards you as a friendly acquaintance.",
+    "requiredLevel": 1,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Hold Monster",
+    "description": "Choose a creature which must succeed on a Wisdom save or be paralyzed for the duration.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Slow",
+    "description": "Up to six creatures must make Wisdom saves or have halved speed, -2 AC, and limited actions.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Confusion",
+    "description": "Each creature in a 10-foot sphere makes a Wisdom save or acts unpredictably each turn.",
+    "requiredLevel": 7,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Dominate Person",
+    "description": "You charm a humanoid for up to one minute, directing its actions each round with telepathic commands.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Dominate Monster",
+    "description": "A creature of your choice must succeed on a Wisdom save or fall completely under your control.",
+    "requiredLevel": 15,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Feeblemind",
+    "description": "You blast a creature's mind, dealing 4d6 psychic damage and reducing its Intelligence and Charisma to 1 on a failed save.",
+    "requiredLevel": 15,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Heroism",
+    "description": "A willing creature is immune to being frightened and gains temporary hit points each round while the spell lasts.",
+    "requiredLevel": 1,
+    "classes": [
+      "Bard",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Aid",
+    "description": "You bolster up to three creatures, increasing their hit point maximum and current hit points by 5 for eight hours.",
+    "requiredLevel": 3,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ]
+  },
+  {
+    "name": "Darkvision",
+    "description": "A willing creature can see in darkness as if it were dim light out to 60 feet for eight hours.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Water Breathing",
+    "description": "Up to ten willing creatures can breathe underwater for 24 hours while retaining their normal movement.",
+    "requiredLevel": 5,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Water Walk",
+    "description": "Up to ten creatures can move across liquid surfaces as if solid for one hour.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Ranger",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Freedom of Movement",
+    "description": "A target's movement is unaffected by difficult terrain and cannot be paralyzed or restrained by magic.",
+    "requiredLevel": 7,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Ranger"
+    ]
+  },
+  {
+    "name": "Stone Shape",
+    "description": "You form stone into any shape that suits your purpose such as a door, idol, or small passageway.",
+    "requiredLevel": 7,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Planar Binding",
+    "description": "You attempt to bind a celestial, elemental, fey, or fiend to your service for up to 24 hours or longer at higher slots.",
+    "requiredLevel": 9,
+    "classes": [
+      "Wizard",
+      "Cleric",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Plane Shift",
+    "description": "You and up to eight willing creatures travel to another plane of existence using a tuning fork keyed to the destination.",
+    "requiredLevel": 13,
+    "classes": [
+      "Wizard",
+      "Sorcerer",
+      "Warlock",
+      "Cleric",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Mass Heal",
+    "description": "A wave of healing energy restores up to 700 hit points, divided as you choose among creatures in range.",
+    "requiredLevel": 17,
+    "classes": [
+      "Cleric"
+    ]
+  },
+  {
+    "name": "Heal",
+    "description": "Choose a creature to regain 70 hit points and end blindness, deafness, and diseases afflicting it.",
+    "requiredLevel": 11,
+    "classes": [
+      "Cleric",
+      "Druid"
+    ]
+  },
+  {
+    "name": "Regenerate",
+    "description": "You touch a creature granting 4d8 + 15 hit points immediately and 1 hit point per turn while lost limbs regrow.",
+    "requiredLevel": 13,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Lesser Restoration",
+    "description": "Touch a creature to end one disease or condition such as blinded, deafened, paralyzed, or poisoned.",
+    "requiredLevel": 3,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Paladin",
+      "Ranger",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Greater Restoration",
+    "description": "You imbue a creature with positive energy to end charmed, petrified, curses, ability score reductions, or exhaustion levels.",
+    "requiredLevel": 9,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Bard"
+    ]
+  },
+  {
+    "name": "Remove Curse",
+    "description": "At your touch all curses affecting a creature or object end, and cursed magic items lose their attunement.",
+    "requiredLevel": 5,
+    "classes": [
+      "Cleric",
+      "Paladin",
+      "Warlock",
+      "Wizard"
+    ]
+  },
+  {
+    "name": "Blur",
+    "description": "Your body becomes blurred, causing attackers to have disadvantage on melee and ranged weapon attacks against you.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  },
+  {
+    "name": "Mirror Image",
+    "description": "Three illusory duplicates appear around you, forcing attackers to potentially hit the duplicates instead.",
+    "requiredLevel": 3,
+    "classes": [
+      "Wizard",
+      "Sorcerer"
+    ]
+  }
+]
