@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.aichallenge.BuildConfig
 import com.example.aichallenge.mcp.McpClient
+import com.example.aichallenge.mcp.McpServers
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoWSD
 import io.modelcontextprotocol.kotlin.sdk.Tool
@@ -154,7 +155,7 @@ class LocalAiServer(
                 val toolReq = parseToolRequest(completionResult.answer.orEmpty()) ?: break
                 val toolName = toolReq.name
                 if (toolName.isBlank()) break
-                usedTools.add(toolName)
+                usedTools.add("${toolReq.serverId}:$toolName")
 
                 // Record the assistant tool request
                 finalMessages.put(
@@ -163,7 +164,9 @@ class LocalAiServer(
                         .put("text", completionResult.answer)
                 )
 
-                val toolResultText = runCatching { runBlocking { McpClient.callTool(toolName, toolReq.parameters) } }
+                val toolResultText = runCatching {
+                    runBlocking { McpClient.callTool(toolName, toolReq.parameters, toolReq.serverId) }
+                }
                     .getOrElse { "Не получилось выполнить MCP инструмент $toolName: ${it.message}" }
 
                 // Add tool result as a new message to the model
@@ -324,7 +327,7 @@ class LocalAiServer(
 
     private suspend fun fetchIssueCommentsFromMcp(): List<GithubIssueComment> {
         val args = mapOf("per_page" to ISSUE_SUMMARY_COMMENT_LIMIT)
-        val raw = runCatching { McpClient.callTool(ISSUE_SUMMARY_TOOL_NAME, args) }
+        val raw = runCatching { McpClient.callTool(ISSUE_SUMMARY_TOOL_NAME, args, McpServers.primaryServerId) }
             .getOrElse { error ->
                 Log.e(TAG, "Failed to call MCP tool $ISSUE_SUMMARY_TOOL_NAME", error)
                 return emptyList()
@@ -570,32 +573,47 @@ class LocalAiServer(
         )
 
 
-    private fun buildSystemMessageFromRole(toolSummary: String): JSONObject =
-        JSONObject()
-            .put("role", "system")
-            .put(
-                "text",
-                role.roleDescription + if (toolSummary.isNotBlank()) {
-                    "\nу тебя есть доступ к следующим инструментам:\n$toolSummary\n" +
-                        "Ты можешь запросить доступ к любому инструменту. \n" +
-                        "Если для использования инструмента у тебя не хватает данных, но они могут быть в другом инструменту, ты можешь сначала вернуть ответ для использования другого инструмента, у которого эти данные есть. +\n" +
-                        "Для запроса доступа к инструменту ответь в формате: MCP_TOOL: {\"name\":\"tool.name\",\"parameters\":{...}}. " +
-                        "Например MCP_TOOL: {\"name\":\"list_activities\",\"parameters\":{\"city_id\":\"213\"}}" + "\n"
-                } else ""
-            )
-
-    private fun buildToolSummary(): String = runBlocking {
-        val tools: List<Tool> = runCatching { McpClient.fetchTools() }.getOrDefault(emptyList())
-        if (tools.isEmpty()) return@runBlocking ""
-        tools.joinToString(separator = "\n") { tool ->
-            val desc = tool.description ?: ""
-            val input = tool.inputSchema
-            val inputSchema = runCatching { input.toString() }.getOrDefault(input?.toString().orEmpty())
-            "name: ${tool.name}, description: $desc, inputSchema: $inputSchema"
+    private fun buildSystemMessageFromRole(toolSummary: String): JSONObject {
+        val text = buildString {
+            append(role.roleDescription)
+            if (toolSummary.isNotBlank()) {
+                appendLine()
+                appendLine("У тебя есть доступ к следующим инструментам:")
+                appendLine(toolSummary)
+                appendLine("Если для ответа не хватает фактов, запроси подходящий MCP инструмент, кратко опиши задачу и используй только необходимые параметры.")
+                appendLine("Всегда проверяй, что результат инструмента вплетается в ответ пользователю и явно ссылайся на источник.")
+                appendLine("Чтобы вызвать инструмент, добавь отдельное сообщение: MCP_TOOL: {\"server\":\"server_id\",\"name\":\"tool.name\",\"parameters\":{...}}.")
+                appendLine("Например MCP_TOOL: {\"server\":\"core\",\"name\":\"github_issue_comments\",\"parameters\":{\"per_page\":10}}")
+            }
         }
+        return JSONObject()
+            .put("role", "system")
+            .put("text", text)
     }
 
-    private data class ToolRequest(val name: String, val parameters: Map<String, Any?>)
+        private fun buildToolSummary(): String = runBlocking {
+        val toolsByServer = runCatching { McpClient.fetchAllTools() }.getOrDefault(emptyMap())
+        if (toolsByServer.isEmpty()) return@runBlocking ""
+        val sb = StringBuilder()
+        toolsByServer.forEach { (serverId, tools) ->
+            if (tools.isEmpty()) return@forEach
+            val serverInfo = runCatching { McpServers.requireEntry(serverId) }.getOrNull()
+            val label = serverInfo?.let { "${it.displayName} [$serverId]" } ?: serverId
+            sb.append("Server ").append(label).append(" tools:\n")
+            tools.forEach { tool ->
+                val desc = tool.description ?: ""
+                val input = tool.inputSchema
+                val inputSchema = runCatching { input.toString() }.getOrDefault(input?.toString().orEmpty())
+                sb.append(" - name: ").append(tool.name)
+                    .append(", description: ").append(desc)
+                    .append(", inputSchema: ").append(inputSchema)
+                    .append('\n')
+            }
+        }
+        sb.toString().trimEnd()
+    }
+
+    private data class ToolRequest(val name: String, val serverId: String, val parameters: Map<String, Any?>)
 
     private fun parseToolRequest(answer: String): ToolRequest? {
         val idx = answer.indexOf(toolMarker, ignoreCase = true)
@@ -608,13 +626,14 @@ class LocalAiServer(
                 val obj = JSONObject(after)
                 val name = obj.optString("name").trim()
                 if (name.isBlank()) return@runCatching null
+                val serverId = obj.optString("server").takeIf { it.isNotBlank() } ?: McpServers.primaryServerId
                 val paramsObj = obj.optJSONObject("parameters")
                 val params = paramsObj?.toMap() ?: emptyMap()
-                ToolRequest(name, params)
+                ToolRequest(name, serverId, params)
             }.getOrNull()
         }
 
-        return ToolRequest(after, emptyMap())
+        return ToolRequest(after, McpServers.primaryServerId, emptyMap())
     }
 
     private fun JSONObject.toMap(): Map<String, Any?> {

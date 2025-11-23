@@ -13,7 +13,8 @@ import com.example.aichallenge.chat.HuggingChatScreen
 import com.example.aichallenge.server.HuggingFaceLocal
 import com.example.aichallenge.server.LocalAiServer
 import com.example.aichallenge.ui.theme.AIChallengeTheme
-import com.example.aichallenge.mcp.McpServerManager
+import com.example.aichallenge.mcp.McpServers
+import com.example.aichallenge.mcp.McpServers.Entry
 import com.example.aichallenge.mcp.ToolsScreen
 import fi.iki.elonen.NanoHTTPD
 import androidx.compose.runtime.getValue
@@ -34,12 +35,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        McpServerManager.setAppContext(applicationContext)
+        McpServers.setAppContext(applicationContext)
 
         setContent {
             AIChallengeTheme {
                 var screen by remember { mutableStateOf("start") }
-                var isMcpRunning by remember { mutableStateOf(McpServerManager.isRunning()) }
+                var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
+                val mcpEntries = remember { McpServers.list() }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         "chat" -> {
@@ -80,15 +82,15 @@ class MainActivity : ComponentActivity() {
                             },
                             onSelectTools = { screen = "tools" },
                             onToggleMcp = {
-                                if (McpServerManager.isRunning()) {
-                                    McpServerManager.stop()
+                                if (McpServers.isRunning()) {
+                                    McpServers.stopAll()
                                 } else {
-                                    McpServerManager.start()
+                                    McpServers.startAll()
                                 }
-                                isMcpRunning = McpServerManager.isRunning()
+                                isMcpRunning = McpServers.isRunning()
                             },
                             mcpRunning = isMcpRunning,
-                            mcpEndpoint = McpServerManager.endpoint,
+                            mcpServers = mcpEntries,
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
@@ -101,7 +103,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         server?.stop()
         server = null
-        McpServerManager.stop()
+        McpServers.stopAll()
     }
 
     private fun switchServer(newServer: NanoHTTPD) {
@@ -123,7 +125,7 @@ private fun StartScreen(
     onSelectTools: () -> Unit,
     onToggleMcp: () -> Unit,
     mcpRunning: Boolean,
-    mcpEndpoint: String,
+    mcpServers: List<Entry>,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -141,11 +143,13 @@ private fun StartScreen(
             Text("MCP Tools")
         }
         Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
-            Text(if (mcpRunning) "Stop MCP server" else "Start MCP server")
+            Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
         }
-        Text(
-            text = "MCP SSE: $mcpEndpoint",
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        mcpServers.forEach { server ->
+            Text(
+                text = "${server.displayName} (${server.id}): ${server.endpoint}",
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }

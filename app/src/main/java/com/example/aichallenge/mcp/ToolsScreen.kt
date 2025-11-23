@@ -36,7 +36,6 @@ fun ToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: To
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("MCP Tools", style = MaterialTheme.typography.headlineSmall)
-            Text("Endpoint: ${McpServerManager.endpoint}", style = MaterialTheme.typography.bodySmall)
 
             Button(onClick = { viewModel.loadTools() }) {
                 Text("Reload")
@@ -55,17 +54,13 @@ fun ToolsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: To
                 state.error != null -> {
                     Text("Error: ${state.error}", color = MaterialTheme.colorScheme.error)
                 }
-                state.tools.isEmpty() -> {
-                    Text("No tools available.")
-                }
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(state.tools) { tool ->
-                            ToolRow(tool.name, tool.description ?: "No description")
-                        }
+                state.servers.isEmpty() -> Text("No tools available.")
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.servers) { server ->
+                        ServerSection(server)
                     }
                 }
             }
@@ -86,5 +81,25 @@ private fun ToolRow(name: String, description: String) {
     ) {
         Text(name, style = MaterialTheme.typography.titleMedium)
         Text(description, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun ServerSection(server: ServerToolsState) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Text("${server.displayName} (${server.serverId})", style = MaterialTheme.typography.titleMedium)
+        Text("Endpoint: ${server.endpoint}", style = MaterialTheme.typography.bodySmall)
+        Text(server.description, style = MaterialTheme.typography.bodySmall)
+        if (server.tools.isEmpty()) {
+            Text("No tools exposed by this server.", style = MaterialTheme.typography.bodyMedium)
+        } else {
+            server.tools.forEach { tool ->
+                ToolRow(tool.name, tool.description ?: "No description")
+            }
+        }
     }
 }

@@ -158,5 +158,165 @@
     "class": "Paladin",
     "level": 6,
     "stats": { "str": 17, "dex": 11, "con": 15, "wis": 12, "int": 10, "cha": 17 }
+  },
+  {
+    "id": "CH-021",
+    "name": "Uriel Stormsinger",
+    "race": "Aasimar",
+    "class": "Bard",
+    "level": 6,
+    "stats": { "str": 11, "dex": 15, "con": 13, "wis": 13, "int": 14, "cha": 18 }
+  },
+  {
+    "id": "CH-022",
+    "name": "Vaelis Thornroot",
+    "race": "Firbolg",
+    "class": "Druid",
+    "level": 7,
+    "stats": { "str": 14, "dex": 12, "con": 15, "wis": 18, "int": 13, "cha": 10 }
+  },
+  {
+    "id": "CH-023",
+    "name": "Brynja Ashbreaker",
+    "race": "Goliath",
+    "class": "Fighter",
+    "level": 8,
+    "stats": { "str": 19, "dex": 12, "con": 17, "wis": 11, "int": 10, "cha": 12 }
+  },
+  {
+    "id": "CH-024",
+    "name": "Caden Riftwalker",
+    "race": "Human",
+    "class": "Warlock",
+    "level": 5,
+    "stats": { "str": 9, "dex": 14, "con": 12, "wis": 13, "int": 15, "cha": 17 }
+  },
+  {
+    "id": "CH-025",
+    "name": "Delphine Starwhisper",
+    "race": "Eladrin",
+    "class": "Wizard",
+    "level": 6,
+    "stats": { "str": 8, "dex": 16, "con": 12, "wis": 15, "int": 18, "cha": 13 }
+  },
+  {
+    "id": "CH-026",
+    "name": "Edrik Stoneveil",
+    "race": "Duergar",
+    "class": "Cleric",
+    "level": 7,
+    "stats": { "str": 15, "dex": 10, "con": 16, "wis": 17, "int": 11, "cha": 9 }
+  },
+  {
+    "id": "CH-027",
+    "name": "Faela Nightsong",
+    "race": "Half-Elf",
+    "class": "Ranger",
+    "level": 5,
+    "stats": { "str": 11, "dex": 17, "con": 13, "wis": 15, "int": 12, "cha": 14 }
+  },
+  {
+    "id": "CH-028",
+    "name": "Gideon Fellbrand",
+    "race": "Human",
+    "class": "Paladin",
+    "level": 8,
+    "stats": { "str": 18, "dex": 11, "con": 16, "wis": 12, "int": 10, "cha": 16 }
+  },
+  {
+    "id": "CH-029",
+    "name": "Hesper Bloomguard",
+    "race": "Satyr",
+    "class": "Druid",
+    "level": 4,
+    "stats": { "str": 9, "dex": 15, "con": 12, "wis": 16, "int": 13, "cha": 17 }
+  },
+  {
+    "id": "CH-030",
+    "name": "Irix Copperwhistle",
+    "race": "Kobold",
+    "class": "Artificer",
+    "level": 5,
+    "stats": { "str": 7, "dex": 16, "con": 12, "wis": 13, "int": 18, "cha": 11 }
+  },
+  {
+    "id": "CH-031",
+    "name": "Jaxar Stonewind",
+    "race": "Aarakocra",
+    "class": "Monk",
+    "level": 6,
+    "stats": { "str": 10, "dex": 19, "con": 12, "wis": 16, "int": 11, "cha": 9 }
+  },
+  {
+    "id": "CH-032",
+    "name": "Kaida Embervine",
+    "race": "Dragonborn",
+    "class": "Sorcerer",
+    "level": 6,
+    "stats": { "str": 12, "dex": 14, "con": 13, "wis": 11, "int": 15, "cha": 18 }
+  },
+  {
+    "id": "CH-033",
+    "name": "Lorcan Tidebinder",
+    "race": "Water Genasi",
+    "class": "Wizard",
+    "level": 6,
+    "stats": { "str": 10, "dex": 14, "con": 14, "wis": 15, "int": 18, "cha": 12 }
+  },
+  {
+    "id": "CH-034",
+    "name": "Mira Dawnflame",
+    "race": "Aasimar",
+    "class": "Paladin",
+    "level": 7,
+    "stats": { "str": 17, "dex": 12, "con": 15, "wis": 13, "int": 11, "cha": 18 }
+  },
+  {
+    "id": "CH-035",
+    "name": "Neris Seaborn",
+    "race": "Triton",
+    "class": "Cleric",
+    "level": 5,
+    "stats": { "str": 13, "dex": 12, "con": 14, "wis": 17, "int": 12, "cha": 14 }
+  },
+  {
+    "id": "CH-036",
+    "name": "Orik Dusksunder",
+    "race": "Half-Orc",
+    "class": "Paladin",
+    "level": 6,
+    "stats": { "str": 18, "dex": 10, "con": 16, "wis": 12, "int": 9, "cha": 15 }
+  },
+  {
+    "id": "CH-037",
+    "name": "Prynn Foxglove",
+    "race": "Forest Gnome",
+    "class": "Rogue",
+    "level": 4,
+    "stats": { "str": 8, "dex": 18, "con": 12, "wis": 13, "int": 16, "cha": 12 }
+  },
+  {
+    "id": "CH-038",
+    "name": "Quinn Shadowmere",
+    "race": "Human",
+    "class": "Ranger",
+    "level": 6,
+    "stats": { "str": 12, "dex": 17, "con": 13, "wis": 15, "int": 11, "cha": 13 }
+  },
+  {
+    "id": "CH-039",
+    "name": "Ryla Windward",
+    "race": "Air Genasi",
+    "class": "Ranger",
+    "level": 5,
+    "stats": { "str": 11, "dex": 18, "con": 12, "wis": 14, "int": 12, "cha": 13 }
+  },
+  {
+    "id": "CH-040",
+    "name": "Selik Ironroot",
+    "race": "Warforged",
+    "class": "Fighter",
+    "level": 7,
+    "stats": { "str": 18, "dex": 12, "con": 17, "wis": 11, "int": 13, "cha": 9 }
   }
 ]
