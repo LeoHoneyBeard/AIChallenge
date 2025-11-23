@@ -2,6 +2,7 @@
   {
     "name": "Echoes of the Ember Gate",
     "summary": "Ancient runes beneath a ruined elven observatory unlock a planar gateway that threatens to pour elemental fire into the Heartlands unless the heroes decipher the seals.",
+    "dungeon_master": "Liliana Duskmantle",
     "participants": [
       "Aelar Sunshadow",
       "Brakka Stoneheart",
@@ -13,6 +14,7 @@
   {
     "name": "Vault of the Frostvein",
     "summary": "A lost dwarven vault buried within glacial caverns awakens a primordial frost spirit, forcing unlikely allies to brave the blizzard-haunted depths.",
+    "dungeon_master": "Torvald Ironquill",
     "participants": [
       "Ragnar Frostvein",
       "Garruk Ironhide",
@@ -23,6 +25,7 @@
   {
     "name": "Whispers of the Shadowdusk",
     "summary": "A cabal of Shadar-kai warlocks sows despair across the frontier; only a band of subtle operatives can trace the whispers back to their bleak citadel.",
+    "dungeon_master": "Myra Silverbranch",
     "participants": [
       "Nyx Shadowdusk",
       "Lira Mistwalker",
@@ -33,6 +36,7 @@
   {
     "name": "Siege of Goldmantle Keep",
     "summary": "Devils loyal to an upstart archduke lay siege to Tarin's ancestral keep, and the heroes must fortify the walls, rally allies, and break the infernal war machine.",
+    "dungeon_master": "Darius Emberhold",
     "participants": [
       "Tarin Goldmantle",
       "Jorand Emberfist",
@@ -44,11 +48,71 @@
   {
     "name": "Labyrinth of the Mistwalker",
     "summary": "Portals bloom throughout the Emerald Vale, forming a shifting maze of Feywild echoes; the party must navigate riddles and bargains to reset the planar anchors.",
+    "dungeon_master": "Evelyn Starcrest",
     "participants": [
       "Lira Mistwalker",
       "Quill Emberlight",
       "Nyx Shadowdusk",
       "Garruk Ironhide"
+    ]
+  },
+  {
+    "name": "Shards of the Tidebinder",
+    "summary": "A leviathan-bound relic surfaces along the Sapphire Coast, and rival navies, sahuagin, and planar cults converge unless the heroes secure the tide shards first.",
+    "dungeon_master": "Sebastian Nightwater",
+    "participants": [
+      "Lorcan Tidebinder",
+      "Neris Seaborn",
+      "Kaida Embervine",
+      "Ryla Windward"
+    ]
+  },
+  {
+    "name": "The Clockwork Wastes",
+    "summary": "An awakened Netherese foundry begins spitting armored constructs across the Glass Dunes, forcing the party to delve the rust-choked warrens and silence its core intellect.",
+    "dungeon_master": "Torvald Ironquill",
+    "participants": [
+      "Selik Ironroot",
+      "Irix Copperwhistle",
+      "Prynn Foxglove",
+      "Quill Emberlight",
+      "Merric Stoutbarrel"
+    ]
+  },
+  {
+    "name": "Masque of the Riftwalker",
+    "summary": "A decadent infernal masquerade fuels planar tears above the capital; the heroes must dance among devils and unravel the contracts before the city dissolves into the Abyss.",
+    "dungeon_master": "Liliana Duskmantle",
+    "participants": [
+      "Caden Riftwalker",
+      "Nyx Shadowdusk",
+      "Helena Dawnsong",
+      "Uriel Stormsinger",
+      "Delphine Starwhisper"
+    ]
+  },
+  {
+    "name": "Roots of the Thornwood",
+    "summary": "Blighted worldroots strangle the Verdant Expanse, and the druids beg the party to trace the corruption back to a buried fey tyrant before the forest withers.",
+    "dungeon_master": "Myra Silverbranch",
+    "participants": [
+      "Vaelis Thornroot",
+      "Faela Nightsong",
+      "Hesper Bloomguard",
+      "Perrin Willowmere",
+      "Selene Nightbloom"
+    ]
+  },
+  {
+    "name": "Citadel of the Dawnflame",
+    "summary": "A marching citadel forged in Avernus descends to brand the mortal sky, and only a strike force of radiant champions can breach its heart before it crowns a new hellish monarch.",
+    "dungeon_master": "Darius Emberhold",
+    "participants": [
+      "Mira Dawnflame",
+      "Gideon Fellbrand",
+      "Tarin Goldmantle",
+      "Orik Dusksunder",
+      "Jorand Emberfist"
     ]
   }
 ]

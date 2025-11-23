@@ -11,8 +11,16 @@ import kotlinx.coroutines.launch
 
 data class ToolsState(
     val isLoading: Boolean = false,
-    val tools: List<Tool> = emptyList(),
+    val servers: List<ServerToolsState> = emptyList(),
     val error: String? = null,
+)
+
+data class ServerToolsState(
+    val serverId: String,
+    val displayName: String,
+    val description: String,
+    val endpoint: String,
+    val tools: List<Tool>,
 )
 
 class ToolsViewModel : ViewModel() {
@@ -25,9 +33,18 @@ class ToolsViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                McpClient.fetchTools()
-            }.onSuccess { tools ->
-                _state.value = _state.value.copy(isLoading = false, tools = tools, error = null)
+                val toolsByServer = McpClient.fetchAllTools()
+                McpServers.list().map { entry ->
+                    ServerToolsState(
+                        serverId = entry.id,
+                        displayName = entry.displayName,
+                        description = entry.description,
+                        endpoint = entry.endpoint,
+                        tools = toolsByServer[entry.id].orEmpty()
+                    )
+                }
+            }.onSuccess { serverStates ->
+                _state.value = _state.value.copy(isLoading = false, servers = serverStates, error = null)
             }.onFailure { t ->
                 _state.value = _state.value.copy(isLoading = false, error = t.message ?: "Unknown error")
             }

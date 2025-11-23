@@ -40,12 +40,12 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import org.json.JSONArray
+import org.json.JSONObject
 import io.ktor.client.engine.cio.CIO as ClientCIO
 import io.ktor.http.HttpStatusCode as ClientStatusCode
 import io.modelcontextprotocol.kotlin.sdk.Role as McpRole
@@ -57,18 +57,17 @@ object McpServerManager {
     private const val TAG = "McpServer"
     private const val HOST = "127.0.0.1"
     private const val PORT = 11020
-    private const val DND_CHARACTERS_ASSET = "mcp/dnd_characters.json"
-    private const val DND_SPELLS_ASSET = "mcp/dnd_spells.json"
     private const val DND_CAMPAIGNS_ASSET = "mcp/my_dnd_campaigns.json"
+    private const val DUNGEON_MASTERS_ASSET = "mcp/dungeons_masters.json"
 
     private val running = AtomicBoolean(false)
     private var engine: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
     private var startedAt: Instant? = null
     private val sessions = ConcurrentHashMap<String, ServerSession>()
     @Volatile private var appContext: Context? = null
-    private val dndCharactersData: JSONArray by lazy { loadJsonArrayAsset(DND_CHARACTERS_ASSET) }
-    private val dndSpellsData: JSONArray by lazy { loadJsonArrayAsset(DND_SPELLS_ASSET) }
+
     private val dndCampaignsData: JSONArray by lazy { loadJsonArrayAsset(DND_CAMPAIGNS_ASSET) }
+    private val dungeonMastersData: JSONArray by lazy { loadJsonArrayAsset(DUNGEON_MASTERS_ASSET) }
 
     // SSE entrypoint (no trailing slash) to match baseUrl logic of SseClientTransport.
     val endpoint: String get() = "http://$HOST:$PORT/mcp"
@@ -78,6 +77,7 @@ object McpServerManager {
     fun setAppContext(context: Context) {
         appContext = context.applicationContext
     }
+
 
     fun start(): Boolean {
         if (running.get()) return false
@@ -163,12 +163,12 @@ object McpServerManager {
                 messages = listOf(
                     PromptMessage(
                         role = McpRole.assistant,
-                        content = TextContent(
-                            text = "SSE entrypoint: $endpoint\n" +
-                                "Tools: github_repos, github_issue_comments, dnd_characters, dnd_spells_for_class\n" +
+                            content = TextContent(
+                                text = "SSE entrypoint: $endpoint\n" +
+                                "Tools: dnd_campaigns, dungeon_masters\n" +
                                 "Resources: local://ai-challenge/status\n" +
                                 "Use the first `endpoint` event to know where to POST messages with the sessionId."
-                        )
+                            )
                     )
                 ),
             )
@@ -197,6 +197,43 @@ object McpServerManager {
             )
         }
 
+        addTool(
+            name = "dnd_campaigns",
+            description = "Returns the list of D&D campaigns (name, summary, dungeon_master, participants) sourced from the local compendium.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject { },
+                required = emptyList(),
+            ),
+        ) {
+            val result = runCatching { dndCampaignsJson() }
+                .getOrElse { error ->
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent("Failed to load campaigns: ${error.message}")),
+                        isError = true
+                    )
+                }
+            CallToolResult.ok(result)
+        }
+
+        addTool(
+            name = "dungeon_masters",
+            description = "Returns dungeon masters (name and years of experience) from the local compendium to help match campaigns with storytellers.",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject { },
+                required = emptyList(),
+            ),
+        ) {
+            val result = runCatching { dungeonMastersJson() }
+                .getOrElse { error ->
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent("Failed to load dungeon masters: ${error.message}")),
+                        isError = true
+                    )
+                }
+            CallToolResult.ok(result)
+        }
+
+        /* GitHub-based tools are temporarily disabled.
         // Tool: list GitHub repositories for a user
         addTool(
             name = "github_repos",
@@ -261,100 +298,25 @@ object McpServerManager {
             val result = fetchGithubIssueComments(issueNumber, perPage)
             CallToolResult.ok(result)
         }
-
-        addTool(
-            name = "dnd_characters",
-            description = "Returns a JSON object with a `characters` array describing the heroes that appear in the `dnd_campaigns` tool; each record includes id, name, race, class, level, and STR/DEX/CON/WIS/INT/CHA stats.",
-            inputSchema = Tool.Input(
-                properties = buildJsonObject { },
-                required = emptyList()
-            )
-        ) {
-            val result = runCatching { dndCharactersJson() }
-                .getOrElse { error ->
-                    return@addTool CallToolResult(
-                        content = listOf(TextContent("Failed to load characters: ${error.message}")),
-                        isError = true
-                    )
-                }
-            CallToolResult.ok(result)
-        }
-
-        addTool(
-            name = "dnd_campaigns",
-            description = "Returns the list of D&D campaigns (name, summary, participants) sourced from the local compendium.",
-            inputSchema = Tool.Input(
-                properties = buildJsonObject { },
-                required = emptyList()
-            )
-        ) {
-            val result = runCatching { dndCampaignsJson() }
-                .getOrElse { error ->
-                    return@addTool CallToolResult(
-                        content = listOf(TextContent("Failed to load campaigns: ${error.message}")),
-                        isError = true
-                    )
-                }
-            CallToolResult.ok(result)
-        }
-
-        addTool(
-            name = "dnd_spells_for_class",
-            description = "Returns the spells available to one or more D&D classes and their level requirements.",
-            inputSchema = Tool.Input(
-                properties = buildJsonObject {
-                    put(
-                        "class_names",
-                        buildJsonObject {
-                            put("type", "array")
-                            put(
-                                "items",
-                                buildJsonObject {
-                                    put("type", "string")
-                                    put("description", "Class name such as Wizard, Cleric, Paladin.")
-                                }
-                            )
-                            put("description", "List of class names; spells for any of them will be returned.")
-                        }
-                    )
-                    put(
-                        "class_name",
-                        buildJsonObject {
-                            put("type", "string")
-                            put("description", "(Deprecated) Single class name. Use class_names instead.")
-                        }
-                    )
-                },
-                required = emptyList()
-            )
-        ) { request ->
-            val classesFromArray = request.arguments["class_names"]?.jsonArray
-                ?.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }
-                ?.filter { it.isNotEmpty() }
-                .orEmpty()
-            val legacySingle = request.arguments["class_name"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-            val classNames = when {
-                classesFromArray.isNotEmpty() -> classesFromArray
-                legacySingle.isNotBlank() -> listOf(legacySingle)
-                else -> emptyList()
-            }
-            if (classNames.isEmpty()) {
-                return@addTool CallToolResult(
-                    content = listOf(TextContent("Provide at least one class via class_names.")),
-                    isError = true
-                )
-            }
-            val result = runCatching { spellsForClassesJson(classNames) }
-                .getOrElse { error ->
-                    return@addTool CallToolResult(
-                        content = listOf(TextContent("Failed to load spells: ${error.message}")),
-                        isError = true
-                    )
-                }
-            CallToolResult.ok(result)
-        }
+        */
 
     }
+
+    private fun requireAppContext(): Context =
+        appContext ?: throw IllegalStateException("Call McpServerManager.setAppContext() before using local compendium tools.")
+
+    private fun loadJsonArrayAsset(assetName: String): JSONArray {
+        val text = requireAppContext().assets.open(assetName).bufferedReader().use { it.readText() }
+        return JSONArray(text)
+    }
+
+    private fun dndCampaignsJson(): String = JSONObject()
+        .put("campaigns", dndCampaignsData)
+        .toString()
+
+    private fun dungeonMastersJson(): String = JSONObject()
+        .put("dungeon_masters", dungeonMastersData)
+        .toString()
 
     private suspend fun fetchGithubRepos(username: String, perPage: Int): String {
         val token = BuildConfig.GITHUB_TOKEN
@@ -412,47 +374,4 @@ object McpServerManager {
     }
 
 
-    private fun requireAppContext(): Context =
-        appContext ?: throw IllegalStateException("Call McpServerManager.setAppContext() before using MCP tools that need local assets.")
-
-    private fun loadJsonArrayAsset(assetName: String): JSONArray {
-        val text = requireAppContext().assets.open(assetName).bufferedReader().use { it.readText() }
-        return JSONArray(text)
-    }
-
-    private fun dndCharactersJson(): String = JSONObject()
-        .put("characters", dndCharactersData)
-        .toString()
-
-    private fun dndCampaignsJson(): String = JSONObject()
-        .put("campaigns", dndCampaignsData)
-        .toString()
-
-    private fun spellsForClassesJson(classNames: List<String>): String {
-        val normalized = classNames.mapNotNull { it.trim().takeIf { trimmed -> trimmed.isNotEmpty() } }
-        if (normalized.isEmpty()) {
-            return JSONObject()
-                .put("message", "No valid class names provided.")
-                .toString()
-        }
-        val normalizedLookup = normalized.map { it.lowercase() }.toSet()
-        val filtered = JSONArray()
-        for (i in 0 until dndSpellsData.length()) {
-            val spell = dndSpellsData.optJSONObject(i) ?: continue
-            val spellClasses = spell.optJSONArray("classes") ?: continue
-            for (j in 0 until spellClasses.length()) {
-                if (normalizedLookup.contains(spellClasses.optString(j).lowercase())) {
-                    filtered.put(spell)
-                    break
-                }
-            }
-        }
-        if (filtered.length() == 0) {
-            return JSONObject()
-                .put("classes", JSONArray(normalized))
-                .put("message", "No spells found for the provided classes in the local compendium.")
-                .toString()
-        }
-        return filtered.toString()
-    }
 }
