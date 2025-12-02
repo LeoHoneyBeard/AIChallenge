@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
 
 class MainActivity : ComponentActivity() {
     private var server: NanoHTTPD? = null
@@ -38,10 +39,13 @@ class MainActivity : ComponentActivity() {
         McpServers.setAppContext(applicationContext)
 
         setContent {
-            AIChallengeTheme {
-                var screen by remember { mutableStateOf("start") }
-                var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
-                val mcpEntries = remember { McpServers.list() }
+            val systemDark = isSystemInDarkTheme()
+            var isDarkTheme by remember { mutableStateOf(systemDark) }
+            var screen by remember { mutableStateOf("start") }
+            var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
+            val mcpEntries = remember { McpServers.list() }
+
+            AIChallengeTheme(darkTheme = isDarkTheme) {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         "chat" -> {
@@ -89,6 +93,8 @@ class MainActivity : ComponentActivity() {
                                 }
                                 isMcpRunning = McpServers.isRunning()
                             },
+                            onToggleTheme = { isDarkTheme = !isDarkTheme },
+                            isDarkTheme = isDarkTheme,
                             mcpRunning = isMcpRunning,
                             mcpServers = mcpEntries,
                             modifier = Modifier.padding(innerPadding)
@@ -124,6 +130,8 @@ private fun StartScreen(
     onSelectHugging: () -> Unit,
     onSelectTools: () -> Unit,
     onToggleMcp: () -> Unit,
+    onToggleTheme: () -> Unit,
+    isDarkTheme: Boolean,
     mcpRunning: Boolean,
     mcpServers: List<Entry>,
     modifier: Modifier = Modifier
@@ -144,6 +152,9 @@ private fun StartScreen(
         }
         Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
             Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
+        }
+        Button(onClick = onToggleTheme, modifier = Modifier.padding(8.dp)) {
+            Text(if (isDarkTheme) "Switch to light theme" else "Switch to dark theme")
         }
         mcpServers.forEach { server ->
             Text(
