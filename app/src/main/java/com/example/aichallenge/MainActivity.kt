@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.aichallenge.chat.ChatScreen
 import com.example.aichallenge.chat.HuggingChatScreen
+import com.example.aichallenge.R
 import com.example.aichallenge.server.HuggingFaceLocal
 import com.example.aichallenge.server.LocalAiServer
 import com.example.aichallenge.ui.theme.AIChallengeTheme
@@ -28,6 +31,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 class MainActivity : ComponentActivity() {
     private var server: NanoHTTPD? = null
@@ -128,28 +133,39 @@ private fun StartScreen(
     mcpServers: List<Entry>,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().then(modifier),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Button(onClick = onSelectChat, modifier = Modifier.padding(8.dp)) {
-            Text("Yandex Chat (LocalAiServer)")
-        }
-        Button(onClick = onSelectHugging, modifier = Modifier.padding(8.dp)) {
-            Text("Hugging Chat (HuggingFaceLocal)")
-        }
-        Button(onClick = onSelectTools, modifier = Modifier.padding(8.dp)) {
-            Text("MCP Tools")
-        }
-        Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
-            Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
-        }
-        mcpServers.forEach { server ->
-            Text(
-                text = "${server.displayName} (${server.id}): ${server.endpoint}",
-                modifier = Modifier.padding(top = 4.dp)
-            )
+    Box(modifier = modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.programmer_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.85f
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(onClick = onSelectChat, modifier = Modifier.padding(8.dp)) {
+                Text("Yandex Chat (LocalAiServer)")
+            }
+            Button(onClick = onSelectHugging, modifier = Modifier.padding(8.dp)) {
+                Text("Hugging Chat (HuggingFaceLocal)")
+            }
+            Button(onClick = onSelectTools, modifier = Modifier.padding(8.dp)) {
+                Text("MCP Tools")
+            }
+            Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
+                Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
+            }
+            mcpServers.forEach { server ->
+                Text(
+                    text = "${server.displayName} (${server.id}): ${server.endpoint}",
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
