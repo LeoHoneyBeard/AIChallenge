@@ -143,7 +143,7 @@ private fun StartScreen(
             Text("MCP Tools")
         }
         Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
-            Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
+            Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers asfg afdg ")
         }
         mcpServers.forEach { server ->
             Text(
