@@ -137,7 +137,7 @@ private fun StartScreen(
             Text("Yandex Chat (LocalAiServer)")
         }
         Button(onClick = onSelectHugging, modifier = Modifier.padding(8.dp)) {
-            Text("Hugging Chat (HuggingFaceLocal)")
+            Text("Hugging Chat (HuggingFaceLocal) tstestetaetataert")
         }
         Button(onClick = onSelectTools, modifier = Modifier.padding(8.dp)) {
             Text("MCP Tools")
