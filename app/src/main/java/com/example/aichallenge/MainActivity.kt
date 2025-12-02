@@ -1,33 +1,40 @@
 package com.example.aichallenge
 
+import android.app.Activity
 import android.os.Bundle
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
-import com.example.aichallenge.chat.ChatScreen
-import com.example.aichallenge.chat.HuggingChatScreen
-import com.example.aichallenge.server.HuggingFaceLocal
-import com.example.aichallenge.server.LocalAiServer
-import com.example.aichallenge.ui.theme.AIChallengeTheme
-import com.example.aichallenge.mcp.McpServers
-import com.example.aichallenge.mcp.McpServers.Entry
-import com.example.aichallenge.mcp.ToolsScreen
-import fi.iki.elonen.NanoHTTPD
+import androidx.compose.material3.Text
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
-import androidx.activity.compose.BackHandler
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import com.example.aichallenge.chat.ChatScreen
+import com.example.aichallenge.chat.HuggingChatScreen
+import com.example.aichallenge.mcp.McpServers
+import com.example.aichallenge.mcp.McpServers.Entry
+import com.example.aichallenge.mcp.ToolsScreen
+import com.example.aichallenge.server.HuggingFaceLocal
+import com.example.aichallenge.server.LocalAiServer
+import com.example.aichallenge.ui.theme.AIChallengeTheme
+import fi.iki.elonen.NanoHTTPD
 
 class MainActivity : ComponentActivity() {
     private var server: NanoHTTPD? = null
@@ -37,11 +44,27 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         McpServers.setAppContext(applicationContext)
 
+        val defaultDarkTheme =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
         setContent {
-            AIChallengeTheme {
-                var screen by remember { mutableStateOf("start") }
-                var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
-                val mcpEntries = remember { McpServers.list() }
+            var isDarkTheme by remember { mutableStateOf(defaultDarkTheme) }
+            var screen by remember { mutableStateOf("start") }
+            var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
+            val mcpEntries = remember { McpServers.list() }
+
+            AIChallengeTheme(darkTheme = isDarkTheme) {
+                val statusBarColor = MaterialTheme.colorScheme.background
+                val useLightIcons = !isDarkTheme
+                val view = LocalView.current
+                val activity = view.context as? Activity
+                if (activity != null && !view.isInEditMode) {
+                    SideEffect {
+                        val window = activity.window
+                        window.statusBarColor = statusBarColor.toArgb()
+                        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = useLightIcons
+                    }
+                }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         "chat" -> {
@@ -89,6 +112,8 @@ class MainActivity : ComponentActivity() {
                                 }
                                 isMcpRunning = McpServers.isRunning()
                             },
+                            onToggleTheme = { isDarkTheme = !isDarkTheme },
+                            isDarkTheme = isDarkTheme,
                             mcpRunning = isMcpRunning,
                             mcpServers = mcpEntries,
                             modifier = Modifier.padding(innerPadding)
@@ -124,6 +149,8 @@ private fun StartScreen(
     onSelectHugging: () -> Unit,
     onSelectTools: () -> Unit,
     onToggleMcp: () -> Unit,
+    onToggleTheme: () -> Unit,
+    isDarkTheme: Boolean,
     mcpRunning: Boolean,
     mcpServers: List<Entry>,
     modifier: Modifier = Modifier
@@ -144,6 +171,9 @@ private fun StartScreen(
         }
         Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
             Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
+        }
+        Button(onClick = onToggleTheme, modifier = Modifier.padding(8.dp)) {
+            Text(if (isDarkTheme) "Switch to light theme" else "Switch to dark theme")
         }
         mcpServers.forEach { server ->
             Text(
