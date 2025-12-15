@@ -1,5 +1,6 @@
 package com.example.aichallenge.api
 
+import com.example.aichallenge.user.UserProfile
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -16,6 +17,7 @@ data class HistoryResponse(
 // DTO to match the updated local server contract
 data class ChatPayload(
     val prompt: String,
+    val userProfile: UserProfile? = null,
 )
 
 interface LocalApi {

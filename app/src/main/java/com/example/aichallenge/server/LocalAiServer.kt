@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.aichallenge.BuildConfig
 import com.example.aichallenge.mcp.McpClient
 import com.example.aichallenge.mcp.McpServers
+import com.example.aichallenge.user.UserProfile
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoWSD
 import io.modelcontextprotocol.kotlin.sdk.Tool
@@ -137,10 +138,12 @@ class LocalAiServer(
             if (prompt.isEmpty()) {
                 return jsonError(400, "Field 'prompt' is required")
             }
+            val userProfile = bodyJson.optJSONObject("userProfile")?.let { UserProfile.fromJson(it) }
+            val userProfileHint = buildUserProfileHint(userProfile)
 
             // Build full conversation: system + stored history + new user message
             val toolListText = runCatching { buildToolSummary() }.getOrDefault("")
-            val finalMessages = JSONArray().put(buildSystemMessageFromRole(toolListText))
+            val finalMessages = JSONArray().put(buildSystemMessageFromRole(toolListText, userProfileHint))
             synchronized(permanentHistory) { permanentHistory.forEach { finalMessages.put(it) } }
             finalMessages.put(
                 JSONObject()
@@ -573,9 +576,13 @@ class LocalAiServer(
         )
 
 
-    private fun buildSystemMessageFromRole(toolSummary: String): JSONObject {
+    private fun buildSystemMessageFromRole(toolSummary: String, userProfileHint: String?): JSONObject {
         val text = buildString {
             append(role.roleDescription)
+            if (!userProfileHint.isNullOrBlank()) {
+                appendLine()
+                appendLine(userProfileHint)
+            }
             if (toolSummary.isNotBlank()) {
                 appendLine()
                 appendLine("У тебя есть доступ к следующим инструментам:")
@@ -589,6 +596,30 @@ class LocalAiServer(
         return JSONObject()
             .put("role", "system")
             .put("text", text)
+    }
+
+    private fun buildUserProfileHint(profile: UserProfile?): String? {
+        profile ?: return null
+        val lines = mutableListOf<String>()
+        profile.name.takeIf { it.isNotBlank() }?.let { lines.add("Имя: $it") }
+        val location = listOf(profile.city, profile.country).filter { it.isNotBlank() }
+        if (location.isNotEmpty()) {
+            lines.add("Локация: ${location.joinToString(", ")}")
+        }
+        profile.preferredLanguage.takeIf { it.isNotBlank() }?.let { lines.add("Предпочтительный язык: $it") }
+        profile.timezone.takeIf { it.isNotBlank() }?.let { lines.add("Часовой пояс: $it") }
+        profile.answerTone.takeIf { it.isNotBlank() }?.let { lines.add("Тон ответа: $it") }
+        profile.answerFormat.takeIf { it.isNotBlank() }?.let { lines.add("Формат ответа: $it") }
+        profile.answerLength.takeIf { it.isNotBlank() }?.let { lines.add("Желаемая длина: $it") }
+        profile.expertiseDomain.takeIf { it.isNotBlank() }?.let { lines.add("Сфера экспертизы: $it") }
+        profile.interests.takeIf { it.isNotBlank() }?.let { lines.add("Интересы: $it") }
+        profile.notes.takeIf { it.isNotBlank() }?.let { lines.add("Доп. инструкции: $it") }
+        if (lines.isEmpty()) return null
+        return buildString {
+            appendLine("Учитывай следующие данные пользователя при ответах:")
+            lines.forEach { entry -> append(" - ").append(entry).appendLine() }
+            append("Держись указанного языка, тона и объема, используя формат, который просит пользователь.")
+        }.trim()
     }
 
         private fun buildToolSummary(): String = runBlocking {
@@ -789,4 +820,3 @@ class LocalAiServer(
         issueSummaryHeartbeatJob = null
     }
 }
-

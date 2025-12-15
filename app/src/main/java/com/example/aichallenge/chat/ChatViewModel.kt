@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.aichallenge.api.ApiModule
 import com.example.aichallenge.api.ChatPayload
 import com.example.aichallenge.api.HistoryResponse
+import com.example.aichallenge.user.UserProfileRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -188,7 +189,10 @@ class ChatViewModel : ViewModel() {
     }
 
     private suspend fun callLocalServer(prompt: String): String {
-        val payload = ChatPayload(prompt = prompt)
+        val payload = ChatPayload(
+            prompt = prompt,
+            userProfile = UserProfileRepository.currentProfile()
+        )
         val ans = api.chatWithRestrictions(payload)
         return ans
     }

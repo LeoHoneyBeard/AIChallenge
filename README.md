@@ -116,3 +116,7 @@ MCP_TOOL: {"server":"core","name":"github_issue_comments","parameters":{"per_pag
 - `app/src/main/java/com/example/aichallenge/mcp/*` — инфраструктура MCP (серверы, клиент, экран инструментов).
 
 Документ обновлён, чтобы отразить актуальное состояние кодовой базы: два чат‑сервера, отключённые по умолчанию GitHub‑инструменты, сжатие истории и новые экраны управления MCP.
+## User profiles and personalization
+- StartScreen now has a "������ ������������" button that opens a profile manager for adding, selecting, editing, or deleting entries.
+- Profiles store name, language, country, city, time zone, preferred answer tone/format/length, expertise, interests, and custom notes. Data lives in filesDir/user_profiles.json so it persists locally.
+- ChatViewModel attaches the selected profile to POST /chat, and LocalAiServer converts it into a short instruction inside the system prompt so Yandex GPT respects the user preferences. Without a profile everything works as before.

@@ -17,6 +17,7 @@ import com.example.aichallenge.mcp.McpServers
 import com.example.aichallenge.mcp.McpServers.Entry
 import com.example.aichallenge.mcp.ToolsScreen
 import fi.iki.elonen.NanoHTTPD
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
+import com.example.aichallenge.user.UserProfileRepository
+import com.example.aichallenge.user.UserProfilesScreen
 
 class MainActivity : ComponentActivity() {
     private var server: NanoHTTPD? = null
@@ -36,12 +39,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         McpServers.setAppContext(applicationContext)
+        UserProfileRepository.initialize(applicationContext)
 
         setContent {
             AIChallengeTheme {
                 var screen by remember { mutableStateOf("start") }
                 var isMcpRunning by remember { mutableStateOf(McpServers.isRunning()) }
                 val mcpEntries = remember { McpServers.list() }
+                val userProfilesState by UserProfileRepository.state.collectAsState()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (screen) {
                         "chat" -> {
@@ -71,6 +76,15 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }
+                        "users" -> {
+                            BackHandler(enabled = true) {
+                                screen = "start"
+                            }
+                            UserProfilesScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                onBack = { screen = "start" }
+                            )
+                        }
                         else -> StartScreen(
                             onSelectChat = {
                                 switchServer(LocalAiServer(8080, applicationContext))
@@ -89,8 +103,10 @@ class MainActivity : ComponentActivity() {
                                 }
                                 isMcpRunning = McpServers.isRunning()
                             },
+                            onOpenUserData = { screen = "users" },
                             mcpRunning = isMcpRunning,
                             mcpServers = mcpEntries,
+                            currentUserName = userProfilesState.selectedProfile?.name,
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
@@ -124,8 +140,10 @@ private fun StartScreen(
     onSelectHugging: () -> Unit,
     onSelectTools: () -> Unit,
     onToggleMcp: () -> Unit,
+    onOpenUserData: () -> Unit,
     mcpRunning: Boolean,
     mcpServers: List<Entry>,
+    currentUserName: String?,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -142,9 +160,17 @@ private fun StartScreen(
         Button(onClick = onSelectTools, modifier = Modifier.padding(8.dp)) {
             Text("MCP Tools")
         }
+        Button(onClick = onOpenUserData, modifier = Modifier.padding(8.dp)) {
+            Text("Данные пользователя")
+        }
         Button(onClick = onToggleMcp, modifier = Modifier.padding(8.dp)) {
             Text(if (mcpRunning) "Stop MCP servers" else "Start MCP servers")
         }
+        val currentName = currentUserName?.takeIf { it.isNotBlank() }
+        Text(
+            text = currentName?.let { "Текущий пользователь: $it" } ?: "Пользователь не выбран",
+            modifier = Modifier.padding(top = 8.dp)
+        )
         mcpServers.forEach { server ->
             Text(
                 text = "${server.displayName} (${server.id}): ${server.endpoint}",
